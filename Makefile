@@ -1,3 +1,15 @@
+BUILD_VARS=PYTEST_MODEL=$(PYTEST_MODEL) \
+	   PYTEST_KEEP_MODEL=$(PYTEST_KEEP_MODEL) \
+	   PYTEST_CLOUD_NAME=$(PYTEST_CLOUD_NAME) \
+	   PYTEST_CLOUD_REGION=$(PYTEST_CLOUD_REGION)
+
+ifneq ($(PYTEST_SELECT_TESTS),)
+BUILD_VARS+=PYTEST_SELECT_TESTS="$(PYTEST_SELECT_TESTS)"
+endif
+ifneq ($(PYTEST_SELECT_MARKS),)
+BUILD_VARS+=PYTEST_SELECT_MARKS="$(PYTEST_SELECT_MARKS)"
+endif
+
 help:
 	@echo "This project supports the following targets"
 	@echo ""
@@ -25,10 +37,8 @@ unittest:
 	@tox -e unit
 
 functional: build
-	@PYTEST_KEEP_MODEL=$(PYTEST_KEEP_MODEL) \
-	    PYTEST_CLOUD_NAME=$(PYTEST_CLOUD_NAME) \
-	    PYTEST_CLOUD_REGION=$(PYTEST_CLOUD_REGION) \
-	    tox -e functional
+    @echo Executing with: $(BUILD_VARS) tox -e functional
+	@$(BUILD_VARS) tox -e functional
 
 build:
 	@echo "Building charm to base directory $(JUJU_REPOSITORY)"

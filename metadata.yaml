@@ -1,5 +1,5 @@
 name: duplicity
-summary: encrypted bandwidth-efficient backup
+summary: Duplicity offers encrypted bandwidth-efficient backup
 maintainer: Ryan Farrell <Ryan.Farrell@ryancision7250>
 description: |
   Duplicity backs directories by producing encrypted tar-format volumes
@@ -11,17 +11,21 @@ description: |
 tags:
   # Replace "misc" with one or more whitelisted tags from this list:
   # https://jujucharms.com/docs/stable/authors-charm-metadata
-  - misc
-subordinate: false
+  - backup
+subordinate: true
 series:
   - bionic
   - xenial
-# provides:
-#   provides-relation:
-#     interface: interface-name
-# requires:
-#   requires-relation:
-#     interface: interface-name
+  - disco
+provides:
+  backup:
+    interface: duplicity
+    scope: container
+requires:
+  general-info:
+    interface: juju-info
+    scope: container
+
 # peers:
 #   peer-relation:
 #     interface: interface-name

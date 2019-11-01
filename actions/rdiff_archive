@@ -3,4 +3,4 @@
 from lib_duplicity import DuplicityHelper
 
 helper = DuplicityHelper()
-helper.action_function()
+helper.rdiff_archive()

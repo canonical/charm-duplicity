@@ -54,6 +54,7 @@ async def test_duplicity_deploy(model, series, source, request):
         # If series is 'xfail' force install to allow testing against versions not in
         # metadata.yaml
         cmd.append('--force')
+
     subprocess.check_call(cmd)
 
 
@@ -81,7 +82,7 @@ async def test_duplicity_status(model, app):
 
 async def test_example_action(app):
     unit = app.units[0]
-    action = await unit.run_action('example-action')
+    action = await unit.run_action('show_history')
     action = await action.wait()
     assert action.status == 'completed'
 
