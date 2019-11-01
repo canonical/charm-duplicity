@@ -18,5 +18,8 @@ def aptinstall_duplicity():
     #  * https://jujucharms.com/docs/devel/developer-getting-started
     #  * https://github.com/juju-solutions/layer-basic#overview
     #
+    hookenv.status_set("maintenance", "Installing duplicity")
+
+
     hookenv.status_set('active', '')
     set_flag('duplicity.installed')

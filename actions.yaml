@@ -1,2 +1,5 @@
-example-action:
-  description: "This is just a test"
+rdiff_archive:
+  description: "Show the rdiff info between the local data and the synced."
+
+show_history:
+  description: "Show sync history by file size and date."
