@@ -16,14 +16,14 @@ sources = [('local', '{}/builds/duplicity'.format(juju_repository)),
            ]
 
 
-# Uncomment for re-using the current model, useful for debugging functional tests
-# @pytest.fixture(scope='module')
-# async def model():
-#     from juju.model import Model
-#     model = Model()
-#     await model.connect_current()
-#     yield model
-#     await model.disconnect()
+#Uncomment for re-using the current model, useful for debugging functional tests
+#@pytest.fixture(scope='module')
+#async def model():
+#    from juju.model import Model
+#    model = Model()
+#    await model.connect_current()
+#    yield model
+#    await model.disconnect()
 
 
 # Custom fixtures
@@ -54,11 +54,12 @@ async def test_duplicity_deploy(model, series, source, request):
         # If series is 'xfail' force install to allow testing against versions not in
         # metadata.yaml
         cmd.append('--force')
-
+    print(cmd)
     subprocess.check_call(cmd)
 
 
 async def test_charm_upgrade(model, app):
+    print(app)
     if app.name.endswith('local'):
         pytest.skip("No need to upgrade the local deploy")
     unit = app.units[0]

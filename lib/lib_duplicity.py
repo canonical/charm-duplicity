@@ -9,7 +9,3 @@ class DuplicityHelper():
         #TODO
         return
 
-    def rdiff_archive(self):
-        """ Run rdiff against archive """
-        #TODO
-        return
