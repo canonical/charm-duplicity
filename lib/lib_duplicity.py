@@ -5,7 +5,11 @@ class DuplicityHelper():
         self.charm_config = hookenv.config()
 
     def show_history(self):
-        """ Show the backup history by date and filesize"""
+        """ Show the backup history by date and filesize """
         #TODO
         return
 
+    def do_backup(self):
+        """ Execute the backup script as configured by the charm """
+        #TODO
+        return
