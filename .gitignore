@@ -8,6 +8,7 @@ __pycache__/
 
 .tox/
 .coverage
+.env
 
 # vi
 .*.swp

@@ -1,2 +1,5 @@
-show_history:
+show-history:
   description: "Show sync history by file size and date."
+do-backup:
+  description: "Manually run the duplicity backup as configured by charm \
+metadata"
