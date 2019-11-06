@@ -17,10 +17,10 @@ series:
   - bionic
   - xenial
   - disco
+  - eoan
 provides:
-  backup:
-    interface: duplicity
-    scope: container
+  backup-host:
+    interface: backup-host-data
 requires:
   general-info:
     interface: juju-info

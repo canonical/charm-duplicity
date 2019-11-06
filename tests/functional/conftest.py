@@ -77,3 +77,9 @@ async def model(controller):
         await controller.destroy_model(model_name)
         while model_name in await controller.list_models():
             await asyncio.sleep(1)
+
+
+@pytest.fixture(scope="module")
+async def jujutools(controller, model):
+    tools = JujuTools(controller, model)
+    return tools
