@@ -7,7 +7,3 @@ includes:
   - layer:basic
   - layer:options
   - layer:apt
-options:
-  apt:
-    packages:
-      - 'duplicity'
