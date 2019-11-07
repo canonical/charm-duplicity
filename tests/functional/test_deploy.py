@@ -21,7 +21,7 @@ PRINCIPALS = ['ubuntu',
 
 
 # Custom fixtures
-@pytest.fixture(params=SERIES, scope="module")
+@pytest.fixture(params=SERIES, scope="function")
 def series(request):
     return request.param
 
@@ -37,15 +37,31 @@ def source(request):
 
 
 @pytest.fixture()
-async def app(model, series):
+async def app(model, series, source):
     """
     This fixture tries to get and return the application object if it exists.
     """
-    application_name='{}-{}'.format("duplicity", series)
+    application_name='{}-{}-{}'.format("duplicity", series, source[0])
     return model.applications.get(application_name)
 
 
 @pytest.fixture(autouse=True)
+async def deploy_all_principals(model):
+    """ This is an autouse fixture that tries to pre-empt creation of all
+    principal applications so tests will run slightly faster """
+    for series in SERIES:
+        if not isinstance(series, str):
+            continue
+        for principal_name in PRINCIPALS:
+            application_name = '{}-{}'.format(principal_name, series)
+            principal = model.applications.get(application_name)
+            if not principal:
+                await model.deploy(principal_name,
+                          application_name=application_name,
+                          series=series)
+
+
+@pytest.fixture
 async def principal_app(model, principal_name, series):
     # deploy principal app
     application_name = '{}-{}'.format(principal_name, series)
@@ -54,28 +70,26 @@ async def principal_app(model, principal_name, series):
         principal = await model.deploy(principal_name,
                               application_name=application_name,
                               series=series)
-        #units = principal.units
+
+    if series != "cosmic":
+        await model.block_until(lambda: principal.status == 'active',
+                                timeout=600)
     return principal
 
 
-async def test_deploy_duplicity_application(model, source, series, principal_app):
+async def test_deploy_duplicity_application(model, source, series):
     """
     Test function that verifies successful deployment of the duplicity
     application to the juju model.
     """
-    if series != "cosmic":
-        await model.block_until(lambda: principal_app.status == 'active',
-                            timeout=300)
+
     # unfortunately juju lib doesnt like to create subordinates, using sp
-    application_name = '{}-{}'.format("duplicity", series)
+    application_name = '{}-{}-{}'.format("duplicity", series, source[0])
     cmd = ['juju', 'deploy', source[1], '-m', model.info.name,
                '--series', series, application_name]
     subprocess.check_call(cmd)
-
-    print(model.applications)
-    #TOFIX
+    await asyncio.sleep(3)
     assert model.applications.get(application_name)
-
     app = model.applications.get(application_name)
     await model.block_until(lambda: app.status in ['waiting', 'active'])
 
@@ -85,8 +99,14 @@ async def test_deploy_duplicity_unit(model, principal_app, app):
     unit to the model by adding charm relations between a principal
     application, and the duplicity charm as a subordinate.
     """
-    await principal_app.add_relation("juju-info", app.name)
-    # TODO: verify the relation exists
+    relation = "{}:general-info {}:juju-info".format(app.name,
+                                                     principal_app.name)
+    if list(filter( lambda x: x.key == relation, app.relations)):
+        pytest.skip("Relation {} already exists.".format(relation))
+    else:
+        await principal_app.add_relation("juju-info", app.name)
+    rel = filter(lambda rel: rel.key == relation, app.relations)
+    assert rel
 
 async def test_charm_upgrade(model, app):
     if app.name.endswith('local'):
@@ -102,8 +122,10 @@ async def test_charm_upgrade(model, app):
     await model.block_until(lambda: unit.agent_status == 'executing')
 
 
-async def test_duplicity_status(model, app):
+async def test_duplicity_status(model, app, series):
     # Verifies status for all deployed series of the charm
+    if series == "cosmic":
+        pytest.skip("Status will never go active on cosmic")
     await model.block_until(lambda: app.status == 'active')
     unit = app.units[0]
     await model.block_until(lambda: unit.agent_status == 'idle')
@@ -123,9 +145,7 @@ async def test_execute_duplicity(app, jujutools):
     unit = app.units[0]
     cmd = 'duplicity --version'
     results = await jujutools.run_command(cmd, unit)
-    #TOFIX: Thus appears to be using the standard out to validate, not ret code
     assert results['Code'] == '0'
-    assert unit.public_address in results['Stdout']
 
 
 async def test_file_stat(app, jujutools):
