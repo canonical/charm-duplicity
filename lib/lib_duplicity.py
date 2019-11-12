@@ -11,5 +11,9 @@ class DuplicityHelper():
 
     def do_backup(self):
         """ Execute the backup script as configured by the charm """
-        #TODO
+        #TODO write a call to duplicity depending on the connection info
+        # profided by charm config or relation data
+
+        # duplicity
+
         return

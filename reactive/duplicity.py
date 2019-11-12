@@ -21,6 +21,7 @@ def install_duplicity():
     #
     hookenv.status_set("maintenance", "Installing duplicity")
     fetch.apt_install("duplicity")
+    fetch.apt_install("python-paramiko")
     ##helper.configure_stubby()
     ##host.service_restart(helper.stubby_service)
 

@@ -1,4 +1,9 @@
 options:
+  aux-backup-directory:
+    type: string
+    default: ""
+    description: "Specifies a directory path which duplicity will create and
+monitor on all units"
   string-option:
     type: string
     default: "Default Value"
