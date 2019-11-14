@@ -21,6 +21,7 @@ PRINCIPALS = ['ubuntu',
 
 
 # Custom fixtures
+# Parameterized fixtures
 @pytest.fixture(params=SERIES, scope="function")
 def series(request):
     return request.param
@@ -35,7 +36,7 @@ def principal_name(request):
 def source(request):
     return request.param
 
-
+# Setup Test Models
 @pytest.fixture()
 async def app(model, series, source):
     """
@@ -45,12 +46,34 @@ async def app(model, series, source):
     return model.applications.get(application_name)
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(scope="module", autouse=True)
+async def deploy_backup_host(model):
+    """
+    This is an autouse fixture which initiates non-blocking creation of a
+    backup host to be used during testing.
+    """
+    application_name = "backup-test-host"
+    if not model.applications.get(application_name):
+        await model.deploy("ubuntu",
+                       application_name=application_name,
+                       series="bionic")
+
+
+@pytest.fixture()
+async def backup_host(model):
+    """ Gets and returns lib juju application object for the backup host """
+    application_name = "backup-test-host"
+    # TODO This should wait until host deployment is complete
+    return model.applications.get(application_name)
+
+
+@pytest.fixture(scope="module", autouse=True)
 async def deploy_all_principals(model):
     """ This is an autouse fixture that tries to pre-empt creation of all
     principal applications so tests will run slightly faster """
     for series in SERIES:
         if not isinstance(series, str):
+            # Skip the non str param, its a pytest.mark obj
             continue
         for principal_name in PRINCIPALS:
             application_name = '{}-{}'.format(principal_name, series)
@@ -61,28 +84,22 @@ async def deploy_all_principals(model):
                           series=series)
 
 
-@pytest.fixture
+@pytest.fixture()
 async def principal_app(model, principal_name, series):
-    # deploy principal app
+    """ Fixture to retrieve the the deployed principal application """
     application_name = '{}-{}'.format(principal_name, series)
-    principal = model.applications.get(application_name)
-    if not principal:
-        principal = await model.deploy(principal_name,
-                              application_name=application_name,
-                              series=series)
-
-    if series != "cosmic":
-        await model.block_until(lambda: principal.status == 'active',
-                                timeout=600)
-    return principal
+    return model.applications.get(application_name)
 
 
+@pytest.mark.skipif(os.getenv("PYTEST_MODEL") is not None and
+               os.getenv ("PYTEST_KEEP_MODEL") is not None and
+               os.getenv("PYTEST_KEEP_MODEL").lower() == 'true',
+               reason="Applications are already deployed.")
 async def test_deploy_duplicity_application(model, source, series):
     """
     Test function that verifies successful deployment of the duplicity
     application to the juju model.
     """
-
     # unfortunately juju lib doesnt like to create subordinates, using sp
     application_name = '{}-{}-{}'.format("duplicity", series, source[0])
     cmd = ['juju', 'deploy', source[1], '-m', model.info.name,
@@ -108,6 +125,7 @@ async def test_deploy_duplicity_unit(model, principal_app, app):
     rel = filter(lambda rel: rel.key == relation, app.relations)
     assert rel
 
+
 async def test_charm_upgrade(model, app):
     if app.name.endswith('local'):
         pytest.skip("No need to upgrade the local deploy")
@@ -122,10 +140,8 @@ async def test_charm_upgrade(model, app):
     await model.block_until(lambda: unit.agent_status == 'executing')
 
 
-async def test_duplicity_status(model, app, series):
+async def test_duplicity_status(model, app,):
     # Verifies status for all deployed series of the charm
-    if series == "cosmic":
-        pytest.skip("Status will never go active on cosmic")
     await model.block_until(lambda: app.status == 'active')
     unit = app.units[0]
     await model.block_until(lambda: unit.agent_status == 'idle')
