@@ -2,16 +2,45 @@ options:
   aux-backup-directory:
     type: string
     default: ""
-    description: "Specifies a directory path which duplicity will create and
-monitor on all units"
-  string-option:
-    type: string
-    default: "Default Value"
-    description: "A short description of the configuration option"
-  boolean-option:
-    type: boolean
+    description: "Specifies an additional directory path which duplicity will
+create and monitor on all units for backup. This path gets used in addition to
+other paths defined by relation data."
+  full_backup:
+    type: bool
     default: False
-    description: "A short description of the configuration option"
+    description: "When False, duplicity will perform incremental backups and
+when True, it does full backups."
+  backend:
+    type: string
+    default: "local"
+    description: "s3|ssh|scp|ftp|rsync|local"
+  remote_backup_url:
+    type: string
+    default: ""
+    description: "URL to the remote server and its local path to be used as the
+backup destination.\n\n
+Backends and their URL formats:\n
+  localfile:  'file:///some_dir'\n
+  ftp & ftps: 'remote.host[:port]/some_dir'\n
+  rsync:      'other.host[:port]::/module/some_dir'\n
+              'other.host[:port]/relative_path'\n
+              'other.host[:port]//absolute_path'\n
+  s3:         's3:other.host[:port]/bucket_name[/prefix]'\n
+              's3+http://bucket_name[/prefix]'\n
+  scp:        'other.host[:port]/some_dir'\n
+  ssh:        'other.host[:port]/some_dir'\n"
+  aws_access_key_id:
+    type: string
+    default: ""
+    description: "Access key id for the AWS IMA user. The user must have a
+policy that grants it privileges to upload to the S3 bucket. This value is
+required when backend='s3'."
+  aws_secret_access_key:
+    type: string
+    default: ""
+    description: "Secret access key for the AWS IMA user. The user must have a
+policy that grants it privileges to upload to the S3 bucket. This value is
+required when backend='s3'."
   int-option:
     type: int
     default: 9001
