@@ -3,4 +3,4 @@
 from lib_duplicity import DuplicityHelper
 
 helper = DuplicityHelper()
-helper.show_history()
+helper.verify()
