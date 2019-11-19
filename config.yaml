@@ -1,5 +1,5 @@
 options:
-  aux-backup-directory:
+  aux_backup_directory:
     type: string
     default: ""
     description: |
@@ -11,7 +11,7 @@ options:
     default: False
     description: |
       When False, duplicity will perform incremental backups and when True, it
-      does full backups."
+      does full backups.
   backend:
     type: string
     default: ""
@@ -53,10 +53,41 @@ options:
     type: string
     default: ""
     description: |
-      (optional) This config value sets the user used for ssh or ftp when
-      contacting the remote host. If unset, duplicity with default to using the
+      This value sets the remote host username for ssh or ftp backups. This is
+      required for ftp type backups and optional for ssh, which if unset it
+      will default to using the local hosts username.
   remote_password:
     type: string
     default: ""
-    description:
-# Do we need to implement 'remote_port' or is it ok baked into the url?
+    description: |
+      This value sets the remote server's password to be used for ssh or ftp
+      backups. This is required for ftp backups and optional for ssh, which if
+      unset may still be able to authenticate via trusted host keys.
+  backup_frequency:
+    type: string
+    default: "manual"
+    description: |
+      Sets the crontab backup frequency to one of the following values:
+      daily|weekly|monthly|manual|auto
+      When set to auto, the cron will only backup the files if they have
+      changed.
+  disable_encryption:
+    type: boolean
+    default: False
+    description: |
+      By default, duplicity uses symmetric encryption on backup, requiring a
+      simple password. Duplicity also supports asymmetric encryption, via GPG
+      keys. Setting this value to True disables encryption across the entire
+      application.
+  encryption_passphrase:
+    type: string
+    default: ""
+    description: |
+      Set a passphrase that may be used for symmetric encryption. If set to an
+      empty string, then the application will generate one at random.
+  gpg_public_key:
+    type: string
+    default: ""
+    description: |
+      Sets the GPG Public Key used for asymmetrical encryption. When set, this
+      becomes the primary method for encryption.

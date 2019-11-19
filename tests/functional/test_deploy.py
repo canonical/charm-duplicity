@@ -147,9 +147,9 @@ async def test_duplicity_status(model, app,):
     await model.block_until(lambda: unit.agent_status == 'idle')
 
 
-async def test_show_history_action(app):
+async def test_verify_action(app):
     unit = app.units[0]
-    action = await unit.run_action('show-history')
+    action = await unit.run_action('verify')
     action = await action.wait()
     assert action.status == 'completed'
 

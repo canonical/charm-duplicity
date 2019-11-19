@@ -1,5 +1,11 @@
-show-history:
-  description: "Show sync history by file size and date."
 do-backup:
-  description: "Manually run the duplicity backup as configured by charm \
-metadata"
+  description: |
+    Execute the duplicity backup procedure as configured by charm metadata.
+    Config values may be overridden at the command line.
+# restore:
+#  description: |
+#    Executed the duplicity restore procedure using
+verify:
+  description: |
+    Verify restores to a temporary path and checks if the result matches the
+    checksum saved during backup
