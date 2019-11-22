@@ -1,11 +1,10 @@
 options:
   aux_backup_directory:
     type: string
-    default: ""
+    default: "/tmp/duplicity"
     description: |
-      Specifies an additional directory path which duplicity will create and
-      monitor on all units for backup. This path gets used in addition to other
-      paths defined by relation data.
+      Specifies an additional directory paths which duplicity will monitor on
+      all units for backup.
   full_backup:
     type: boolean
     default: False
@@ -16,7 +15,7 @@ options:
     type: string
     default: ""
     description: |
-      Accepted values are s3 | ssh | scp | ftp | rsync | local or ''
+      Accepted values are s3 | ssh | scp | ftp | rsync | local
       An empty string will disable backups.
   remote_backup_url:
     type: string
@@ -27,7 +26,7 @@ options:
 
       Backends and their URL formats:
         local:      'file:///some_dir'
-        ftp & ftps: 'remote.host[:port]/some_dir'
+        ftp & sftp: 'remote.host[:port]/some_dir'
         rsync:      'other.host[:port]::/module/some_dir'
                     'other.host[:port]/relative_path'
                     'other.host[:port]//absolute_path'
@@ -41,14 +40,14 @@ options:
     description: |
       Access key id for the AWS IMA user. The user must have a policy that
       grants it privileges to upload to the S3 bucket. This value is required
-      when backend='s3'."
+      when backend='s3'.
   aws_secret_access_key:
     type: string
     default: ""
     description: |
       Secret access key for the AWS IMA user. The user must have a policy that
       grants it privileges to upload to the S3 bucket. This value is required
-      when backend='s3'."
+      when backend='s3'.
   remote_user:
     type: string
     default: ""
@@ -83,8 +82,7 @@ options:
     type: string
     default: ""
     description: |
-      Set a passphrase that may be used for symmetric encryption. If set to an
-      empty string, then the application will generate one at random.
+      Set a passphrase required to perform symmetric encryption.
   gpg_public_key:
     type: string
     default: ""

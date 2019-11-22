@@ -1,0 +1,6 @@
+#!/usr/local/sbin/charm-env python3
+
+from lib_duplicity import DuplicityHelper
+
+helper = DuplicityHelper()
+helper.restore()

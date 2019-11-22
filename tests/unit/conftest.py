@@ -46,6 +46,9 @@ def mock_hookenv_config(monkeypatch):
 def mock_remote_unit(monkeypatch):
     monkeypatch.setattr('lib_duplicity.hookenv.remote_unit', lambda: 'unit-mock/0')
 
+@pytest.fixture
+def mock_local_unit(monkeypatch):
+    monkeypatch.setattr('lib_duplicity.hookenv.local_unit', lambda: 'unit-mock/0')
 
 @pytest.fixture
 def mock_charm_dir(monkeypatch):
@@ -53,7 +56,8 @@ def mock_charm_dir(monkeypatch):
 
 
 @pytest.fixture
-def duplicity(tmpdir, mock_hookenv_config, mock_charm_dir, monkeypatch):
+def duplicity(tmpdir, mock_hookenv_config, mock_charm_dir, mock_local_unit,
+              monkeypatch):
     from lib_duplicity import DuplicityHelper
     helper = DuplicityHelper()
 
