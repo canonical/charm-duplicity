@@ -24,6 +24,7 @@ def install_duplicity():
     hookenv.status_set("maintenance", "Installing duplicity")
     fetch.apt_install("duplicity")
     fetch.apt_install("python-paramiko")
+    fetch.apt_install("python-boto")
     ##helper.configure_stubby()
     ##host.service_restart(helper.stubby_service)
 
@@ -32,6 +33,7 @@ def install_duplicity():
 
 
 @when('config.set.backend')
+@when('config.set.remote_backup_url')
 def validate_backend():
     """
     Validates that the config value for 'backend' is something that duplicity
@@ -39,20 +41,22 @@ def validate_backend():
     only, check that the AWS IMA credentials are also set.
     """
     backend = hookenv.config().get("backend").lower()
-    if backend == "":
-        hookenv.status_set('blocked', 'The backup backend is not defined')
-        return False
-    elif backend not in ["s3", "ssh", "scp", "ftp", "rsync", "local"]:
+    if backend not in ["s3", "ssh", "scp", "sftp", "ftp", "rsync", "local"]:
         hookenv.status_set('blocked',
                            'Unrecognized backend "{}"'.format(backend))
         return False
     elif backend == "s3":
         # make sure 'aws_access_key_id' and 'aws_secret_access_key' exist
-        if not hookenv.config().get("aws_access_key_id") or \
+        if not hookenv.config().get("aws_access_key_id") and \
                 not hookenv.config().get("aws_secret_access_key"):
             hookenv.status_set('blocked', 'S3 backups require \
-                    "aws_access_key_id" and "aws_secret_access_key" to be set')
+"aws_access_key_id" and "aws_secret_access_key" to be set')
             return False
+    if not hookenv.config().get("remote_backup_url"):
+        # remote url is unset
+        hookenv.status_set('blocked', 'Backup path is required. Set config \
+for "remote_backup_url"')
+        return False
     return True
 
 
@@ -61,9 +65,11 @@ def create_aux_backup_directory():
     aux_backup_dir = hookenv.config().get("aux_backup_directory")
     if aux_backup_dir:
         # if the data is not ok to make a directory path then let juju catch it
-        os.mkdir(aux_backup_dir)
-        hookenv.log(
-            "Creating auxiliary backup directory: {}".format(aux_backup_dir))
+        if not os.path.exists(aux_backup_dir):
+            os.makedirs(aux_backup_dir)
+            hookenv.log("Creating auxiliary backup directory: {}".format(
+                aux_backup_dir))
+
 
 @when('config.set.backup_frequency')
 def validate_cron_frequency():
@@ -75,6 +81,7 @@ def validate_cron_frequency():
                            )
         return False
     return True
+
 
 @when('config.set.encryption_passphrase')
 @when('config.set.gpg_public_key')
@@ -88,11 +95,14 @@ def validate_encryption_method():
     disable = hookenv.config().get("disable_encryption")
     if not passphrase and not gpg_key and not disable:
         hookenv.status_set('blocked', 'Must set either an encryption \
-        passphrase, GPG public key, or disable encryption')
+passphrase, GPG public key, or disable encryption')
+        return False
+    return True
 
 
 @when('config.changed')
 def validate_configs():
+    hookenv.status_set("maintenance", "Configuring Duplicity")
     clear_flag('duplicity.configured')
     valid = validate_backend() and \
             validate_cron_frequency() and \
@@ -109,4 +119,4 @@ def update_cron():
     successfully. The cron script will be a call to juju run-action do-backup
     """
     hookenv.status_set('active', '')
-
+    #helper.render_actions()

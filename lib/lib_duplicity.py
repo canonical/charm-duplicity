@@ -1,4 +1,5 @@
 import subprocess
+import os
 
 from charmhelpers.core import hookenv
 
@@ -10,7 +11,9 @@ class DuplicityHelper():
         """
         Helper function to assemble the backup url into a format accepted
         by duplicity, based off of the 'backend' and 'remote_backup_url'
-        defined in the charm config
+        defined in the charm config. _backup_url will be appended with the
+        charms unit name to avoid overwriting backups from other sources in a
+        scaled up environment.
         """
         backend = self.charm_config.get("backend").lower()
         # start building the url
@@ -27,34 +30,57 @@ class DuplicityHelper():
                 else:
                     url += "{}@".format(user)
             url += self.charm_config.get("remote_backup_url")
-
-            return url
-
-        elif backend in ["ftp", "ftps"]:
+        elif backend in ["ftp", "sftp"]:
             # FTP requires remote credentials to be set, IIRC...
             # TODO - impl. later
             raise NotImplementedError
         elif backend == "s3":
             # The url should already be well formed
-            return url + self.charm_config.get("remote_backup_url")
+            url = self.charm_config.get("remote_backup_url")
         elif backend == "local":
             #local file, ensure it looks like a proper local url ""
             url = self.charm_config.get("remote_backup_url")
-            if url.startswith("file://"):
-                return url
-            else:
-                return "file://{}".format(url)
+            if not url.startswith("file://"):
+                url = "file://{}".format(url)
+        else:
+            return None
+        url += "/{}".format(hookenv.local_unit().replace("/", "-"))
+        return url
 
-        return None
+    def do_backup(self, **kwargs):
+        """ Execute the backup call to duplicity as configured by the charm
 
-    def do_backup(self):
-        """ Execute the backup script as configured by the charm """
-        print(self.charm_config)
-        print(self.charm_config.get("backend"))
-        print(self._backup_url())
+        :param: kwargs
+        :type: dictionary of values that may be used instead of
+        """
+        # print(self.charm_config)
+        # print(self.charm_config.get("backend"))
+        # print(self._backup_url())
 
-        cmd = ["duplicity", "--version"]
-        # FIXME - To implement...
+        # Set the Aws Credentials. It doesnt matter if they are used or not
+        os.environ["AWS_SECRET_ACCESS_KEY"] = self.charm_config.get(
+            "aws_secret_access_key")
+        os.environ["AWS_ACCESS_KEY_ID"] = self.charm_config.get(
+            "aws_access_key_id")
+
+        # Create the duplicity backup command
+        if self.charm_config.get("full_backup"):
+            cmd = ["duplicity", "full"]
+        else:
+            cmd = ["duplicity", "incr"]
+
+        # Add source and destination
+        cmd.append(self.charm_config.get("aux_backup_directory"))
+        cmd.append(self._backup_url())
+
+        if self.charm_config.get("disable_encryption"):
+            cmd.append("--no-encryption")
+        else:
+            # set $PASSWORD or otherwise use encryption_passphrase
+            os.environ["PASSWORD"] = self.charm_config.get(
+                "encryption_passphrase")
+
+        hookenv.log("Duplicity Command: " + " ".join(cmd))
         subprocess.check_call(cmd)
         return
 
@@ -74,9 +100,22 @@ class DuplicityHelper():
         pass
 
     def list_current_files(self):
-        #TODO
-        # duplicity list-current-files <target_url>
-        pass
+        # Set the Aws Credentials. It doesnt matter if they are used or not
+        os.environ["AWS_SECRET_ACCESS_KEY"] = self.charm_config.get(
+            "aws_secret_access_key")
+        os.environ["AWS_ACCESS_KEY_ID"] = self.charm_config.get(
+            "aws_access_key_id")
+
+        cmd = "duplicity", "list-current-files", self._backup_url()
+
+        if self.charm_config.get("disable_encryption"):
+            cmd.append("--no-encryption")
+        else:
+            # set $PASSWORD or otherwise use encryption_passphrase
+            os.environ["PASSWORD"] = self.charm_config.get(
+                "encryption_passphrase")
+
+        subprocess.check_call(cmd)
 
     def restore(self):
         #TODO
