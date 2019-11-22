@@ -98,8 +98,7 @@ async def principal_app(model, principal_name, series):
                     reason="Applications are already deployed.")
 @pytest.mark.parametrize("seriesx",  SERIES + [pytest.param('cosmic',
                                     marks=pytest.mark.xfail(
-                                    reason='Charm version not supported'))]
-                         )
+                                    reason='Charm version not supported'))])
 async def test_deploy_duplicity_application(model, source, seriesx):
     """
     Test function that verifies successful deployment of the duplicity
@@ -148,12 +147,8 @@ async def test_charm_upgrade(model, app):
 @pytest.mark.parametrize("backend", ["rsync",
                                      "ssh",
                                      "scp",
-                                     pytest.param("ftp",
-                                                  marks=pytest.mark.xfail(
-                                                    reason="Not Implemented")),
-                                     pytest.param("sftp",
-                                                  marks=pytest.mark.xfail(
-                                                    reason="Not Implemented")),
+                                     "ftp",
+                                     "sftp",
                                      "s3",
                                      "local",
                                      "nonsense",
@@ -172,8 +167,10 @@ async def test_duplicity_status_backend(model, app, backend):
                                     encryption_passphrase == "" &&
                                     gpg_public_key == "" ]
     """
-    await model.block_until(lambda: app.status not in ['maintenance',
-                                                       'waiting'], timeout=300)
+    #await until the app is finished deploying before attmpting config change
+    await model.block_until(lambda: app.status != 'waiting', timeout=300)
+    await model.block_until(lambda: app.status != 'maintenance', timeout=300)
+    assert app.status != "error"
     subprocess.check_call(['juju',
                            'config',
                            app.name,
@@ -181,12 +178,12 @@ async def test_duplicity_status_backend(model, app, backend):
                            'disable_encryption=True',
                            "backend={}".format(backend),
                            'remote_backup_url=placeholder/path'])
+    time.sleep(5)
     if backend in ["ftp", "sftp", "ssh", "scp", "rsync", "local"]:
         # state should go active
         await model.block_until(lambda: app.status == 'active', timeout=300)
     elif backend == "s3":
         # This should be blocked. Set the aws credentials to unblock it.
-        time.sleep(5)
         await model.block_until(lambda: app.status == 'blocked', timeout=300)
         subprocess.check_call(['juju',
                                'config',
@@ -200,8 +197,8 @@ async def test_duplicity_status_backend(model, app, backend):
         await model.block_until(lambda: app.status == 'active', timeout=300)
     else:
         # blocked
-        time.sleep(5)
         await model.block_until(lambda: app.status == 'blocked', timeout=300)
+    assert app.status != "error"
 
 
 @pytest.mark.parametrize("encryption_passphrase", ["", "easy-password"])
