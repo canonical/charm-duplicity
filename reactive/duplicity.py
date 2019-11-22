@@ -1,3 +1,14 @@
+"""
+This is the collection of the duplicity charm's reactive scripts. It defines
+functions used as callbacks to shape the charm's behavior during various state
+change events such as relations being added, config values changing, relations
+joining etc.
+
+See the following for information about reactive charms:
+  * https://jujucharms.com/docs/devel/developer-getting-started
+  * https://github.com/juju-solutions/layer-basic#overview
+"""
+
 from lib_duplicity import DuplicityHelper
 from charmhelpers.core import hookenv, host
 from charms.reactive import set_flag, clear_flag, when_not, when
@@ -10,24 +21,18 @@ helper = DuplicityHelper()
 
 @when_not('duplicity.installed')
 def install_duplicity():
-    # Do your setup here.
-    #
-    # If your charm has other dependencies before it can install,
-    # add those as @when() clauses above., or as additional @when()
-    # decorated handlers below
-    #
-    # See the following for information about reactive charms:
-    #
-    #  * https://jujucharms.com/docs/devel/developer-getting-started
-    #  * https://github.com/juju-solutions/layer-basic#overview
-    #
+    """
+    Apt install duplicity's dependencies:
+      - duplicity
+      - python-paramiko for ssh
+      - python-boto for aws
+
+    :return:
+    """
     hookenv.status_set("maintenance", "Installing duplicity")
     fetch.apt_install("duplicity")
     fetch.apt_install("python-paramiko")
     fetch.apt_install("python-boto")
-    ##helper.configure_stubby()
-    ##host.service_restart(helper.stubby_service)
-
     hookenv.status_set('active', '')
     set_flag('duplicity.installed')
 
@@ -41,7 +46,7 @@ def validate_backend():
     only, check that the AWS IMA credentials are also set.
     """
     backend = hookenv.config().get("backend").lower()
-    if backend not in ["s3", "ssh", "scp", "sftp", "ftp", "rsync", "local"]:
+    if backend not in ["s3", "ssh", "scp", "sftp", "ftp", "rsync", "file"]:
         hookenv.status_set('blocked',
                            'Unrecognized backend "{}"'.format(backend))
         return False
@@ -105,8 +110,8 @@ def validate_configs():
     hookenv.status_set("maintenance", "Configuring Duplicity")
     clear_flag('duplicity.configured')
     valid = validate_backend() and \
-            validate_cron_frequency() and \
-            validate_encryption_method()
+        validate_cron_frequency() and \
+        validate_encryption_method()
 
     if valid:
         set_flag('duplicity.configured')
@@ -118,5 +123,6 @@ def update_cron():
     Finalizes the backup cron script when duplicity has been configured
     successfully. The cron script will be a call to juju run-action do-backup
     """
-    hookenv.status_set('active', '')
-    #helper.render_actions()
+    hookenv.status_set('active', 'Rendering duplicity crontab')
+    helper.render_backup_cron()
+    hookenv.status_set('active', 'Ready.')

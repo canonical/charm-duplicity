@@ -3,6 +3,7 @@ import os
 
 from charmhelpers.core import hookenv
 
+
 class DuplicityHelper():
     def __init__(self):
         self.charm_config = hookenv.config()
@@ -16,8 +17,11 @@ class DuplicityHelper():
         scaled up environment.
         """
         backend = self.charm_config.get("backend").lower()
+        prefix = "{}://".format(backend)
+        remote_path = self.charm_config.get("remote_backup_url")
+
         # start building the url
-        url = "{}://".format(backend)
+        url = ""
 
         if backend in ["rsync", "scp", "ssh"]:
             # These all require SSH Type Authentication and will attempt to use
@@ -29,23 +33,58 @@ class DuplicityHelper():
                     url += "{}:{}@".format(user, password)
                 else:
                     url += "{}@".format(user)
-            url += self.charm_config.get("remote_backup_url")
+            url += remote_path.replace(prefix, "")
         elif backend in ["ftp", "sftp"]:
             # FTP requires remote credentials to be set, IIRC...
             # TODO - impl. later
             raise NotImplementedError
-        elif backend == "s3":
-            # The url should already be well formed
-            url = self.charm_config.get("remote_backup_url")
-        elif backend == "local":
-            #local file, ensure it looks like a proper local url ""
-            url = self.charm_config.get("remote_backup_url")
-            if not url.startswith("file://"):
-                url = "file://{}".format(url)
+        elif backend in ["s3", "file"]:
+            url = remote_path.replace(prefix, "")
         else:
             return None
-        url += "/{}".format(hookenv.local_unit().replace("/", "-"))
+
+        url = "{}://".format(backend) + url
         return url
+
+    def _set_environment_vars(self):
+        """
+        Helper function sets the required environmental variables used by
+        duplicity.
+        :return:
+        """
+        # Set the Aws Credentials. It doesnt matter if they are used or not
+        os.environ["AWS_SECRET_ACCESS_KEY"] = self.charm_config.get(
+            "aws_secret_access_key")
+        os.environ["AWS_ACCESS_KEY_ID"] = self.charm_config.get(
+            "aws_access_key_id")
+        os.environ["PASSWORD"] = self.charm_config.get(
+            "encryption_passphrase")
+
+    def _additional_options(self):
+        """
+        Parses the config options and provides a list of args to be passed to
+        duplicity, and useful for multiple duplicity actions.
+        :return:
+        """
+        # backups named after the unit
+        cmd = ['--name={}'.format(hookenv.local_unit().replace("/", "-"))]
+
+        if self.charm_config.get("disable_encryption"):
+            cmd.append("--no-encryption")
+        elif self.charm.config.get("gpg_public_key"):
+            cmd.append("--gpg-key={}".format(
+                self.charm.config.get("gpg_public_key")))
+
+    def render_backup_cron(self):
+        """
+        This function writes out the duplicity backup procedure to a script
+        which can be run independently of the charm and
+
+        :return:
+        """
+        #TODO: This is important & one of the primary features of the charm to
+        # support.
+        pass
 
     def do_backup(self, **kwargs):
         """ Execute the backup call to duplicity as configured by the charm
@@ -53,15 +92,7 @@ class DuplicityHelper():
         :param: kwargs
         :type: dictionary of values that may be used instead of
         """
-        # print(self.charm_config)
-        # print(self.charm_config.get("backend"))
-        # print(self._backup_url())
-
-        # Set the Aws Credentials. It doesnt matter if they are used or not
-        os.environ["AWS_SECRET_ACCESS_KEY"] = self.charm_config.get(
-            "aws_secret_access_key")
-        os.environ["AWS_ACCESS_KEY_ID"] = self.charm_config.get(
-            "aws_access_key_id")
+        self._set_environment_vars()
 
         # Create the duplicity backup command
         if self.charm_config.get("full_backup"):
@@ -72,13 +103,8 @@ class DuplicityHelper():
         # Add source and destination
         cmd.append(self.charm_config.get("aux_backup_directory"))
         cmd.append(self._backup_url())
-
-        if self.charm_config.get("disable_encryption"):
-            cmd.append("--no-encryption")
-        else:
-            # set $PASSWORD or otherwise use encryption_passphrase
-            os.environ["PASSWORD"] = self.charm_config.get(
-                "encryption_passphrase")
+        # Add additional options
+        cmd.append(self._additional_options())
 
         hookenv.log("Duplicity Command: " + " ".join(cmd))
         subprocess.check_call(cmd)
@@ -99,22 +125,15 @@ class DuplicityHelper():
         # duplicity collection-status <target_url>
         pass
 
-    def list_current_files(self):
-        # Set the Aws Credentials. It doesnt matter if they are used or not
-        os.environ["AWS_SECRET_ACCESS_KEY"] = self.charm_config.get(
-            "aws_secret_access_key")
-        os.environ["AWS_ACCESS_KEY_ID"] = self.charm_config.get(
-            "aws_access_key_id")
-
+    def list_current_files(self, **kwargs):
+        """
+        Function that runs duplicity list current files in the remote
+        directory.
+        :return:
+        """
+        self._set_environment_vars()
         cmd = "duplicity", "list-current-files", self._backup_url()
-
-        if self.charm_config.get("disable_encryption"):
-            cmd.append("--no-encryption")
-        else:
-            # set $PASSWORD or otherwise use encryption_passphrase
-            os.environ["PASSWORD"] = self.charm_config.get(
-                "encryption_passphrase")
-
+        cmd.append(self._additional_options())
         subprocess.check_call(cmd)
 
     def restore(self):
