@@ -6,6 +6,7 @@ import asyncio
 import time
 import string
 import random
+from tempfile import NamedTemporaryFile
 
 # Treat all tests as coroutines
 pytestmark = pytest.mark.asyncio
@@ -150,7 +151,7 @@ async def test_charm_upgrade(model, app):
                                      "ftp",
                                      "sftp",
                                      "s3",
-                                     "local",
+                                     "file",
                                      "nonsense",
                                      ""
                                      ])
@@ -179,7 +180,7 @@ async def test_duplicity_status_backend(model, app, backend):
                            "backend={}".format(backend),
                            'remote_backup_url=placeholder/path'])
     time.sleep(5)
-    if backend in ["ftp", "sftp", "ssh", "scp", "rsync", "local"]:
+    if backend in ["ftp", "sftp", "ssh", "scp", "rsync", "file"]:
         # state should go active
         await model.block_until(lambda: app.status == 'active', timeout=300)
     elif backend == "s3":
@@ -233,23 +234,113 @@ async def test_duplicity_status_encryption_settings(model, app,
         time.sleep(5)
         await model.block_until(lambda: app.status == 'active', timeout=300)
 
+
 @pytest.fixture
-async def make_backup_test_data(tmpdir):
+def make_backup_test_data(model, app, tmpdir):
     """ Creates test data in local test temp dir, then puts the data on the
-    units to test backups."""
-    with open(os.path.join(tmpdir, "duptest.txt")):
-        random = ''.join([random.choice(string.ascii_letters +
-                                        string.digits) for n in xrange(32)])
+    units to test backups. The test data consists of three regular text filled
+    with a few hundred random Bytes.
+
+    :returns: str - path to be used as the source directory on each unit
+    """
+    # make the local test data directory to be copied to the units
+    test_data_dir = os.path.join(tmpdir.strpath, "duplicity-testdata")
+    try:
+        os.mkdir(test_data_dir)
+    except:
+        pass
+
+    # Use a directory that ubuntu user has permissions to, otherwise juju scp
+    # will fail.
+    source_backup_path = "/home/ubuntu/duplicity-backups"
+    # set the charms config value for a backup source directory
+    subprocess.check_call(["juju", "config", app.name, "-m", model.info.name,
+                          "aux_backup_directory={}".format(source_backup_path)
+                           ])
+    # make the path on the remote units
+    for unit in app.units:
+        subprocess.check_call(["juju", "ssh", '-m', model.info.name, unit.name,
+                               "--", 'mkdir -p {}'.format(source_backup_path),
+                               ])
+        # I didnt have luck with unit.ssh; Its Not Implemented yet
+        # unit.ssh("mkdir -p {}".format(source_backup_path))
+
+    # lambda function to generate a quick 250 Bytes of ASCII
+    adddata = lambda: "".join(random.choices(string.ascii_lowercase +
+                                             string.ascii_uppercase +
+                                             string.digits, k=250))
+    for i in range(3):
+        #create new tmp file
+        with NamedTemporaryFile(mode="w", dir=test_data_dir,
+                                delete=False) as f:
+            # adds 250 Bytes of random ascii data to a test file
+            f.write(adddata())
+
+        # write some new data to the existing files
+        for _file in os.listdir(test_data_dir):
+            with open(os.path.join(test_data_dir, _file), "w") as f:
+                f.write(adddata())
+
+    # scp the files over to the remote hosts
+    for unit in app.units:
+        for _file in os.listdir(test_data_dir):
+            subprocess.check_call(["juju",
+                                   "scp",
+                                   '-m', model.info.name,
+                                   os.path.join(test_data_dir, _file),
+                                   "{}:{}".format(unit.name,
+                                                  source_backup_path),
+                                   ])
+    return source_backup_path
 
 
+@pytest.fixture
+def setup_ssh_encryption_keys(tmpdir, model):
+    """
+    Fixture sets up ssh keypairs across units and the backup test host to
+    enable rsync, ssh, scp, and ftp type transfers.
+    TODO: Each unit needs ssh-keygen and the test-backup-host needs their
+      public keys added to its authorized_hosts file.
+      There will be a gotcha regarding first time connection & accepting the
+      host key fingerprint. Could be resolved by manually editing the
+      known_hosts files on the units.
 
-async def test_do_backup_action(app):
-    unit = app.units[0]
+    :param tmpdir:
+    :param model:
+    :return:
+    """
+
+    pass
+
+def test_do_backup_action(app, setup_ssh_encryption_keys,
+                          make_backup_test_data, tmpdir):
+    """
+    This function tests the do backup action on all units of an application.
+    The fixture make_backup_test_data runs three times yielding the remote path
+    used as the backup source directory.
+
+    :param app:
+    :param setup_ssh_encryption_keys: Fixture that ensures units can talk to
+    the backup test host.
+    :param make_backup_test_data: Fixture that creates test files and places
+    them on the duplicity units for consumption.
+    :return:
+    """
+    # TODO -
+    for unit in app.units:
+        pass
 
 
 async def test_verify_action(app):
     unit = app.units[0]
     action = await unit.run_action('verify')
+    action = await action.wait()
+    assert action.status == 'completed'
+
+
+async def test_list_current_files_action(app):
+    unit = app.units[0]
+    action = await unit.run_action('')
     action = await action.wait()
     assert action.status == 'completed'
 

@@ -12,9 +12,9 @@ class TestLib():
 
     @pytest.mark.parametrize("backend,username,password,path,expected",
 [("rsync", "user", "", "other.host:44/bak", "rsync://user@other.host:44/bak"),
- ("ssh", "user", "pass", "other.host:55/bak",
+ ("ssh", "user", "pass", "ssh://other.host:55/bak",
                                         "ssh://user:pass@other.host:55/bak"),
- ("scp", "", "", "other.host//bak", "scp://other.host//bak"),
+ ("scp", "", "pass", "scp://other.host//bak", "scp://other.host//bak"),
  ("s3", "user", "pass", "s3://aws-remote-host/bak", "s3://aws-remote-host/bak"),
  pytest.param("ftp", "user", "pass", "ftp-host:bak",
                     "ftp://user:pass@ftp-host:bak", marks=pytest.mark.xfail),
@@ -28,4 +28,4 @@ class TestLib():
         duplicity.charm_config["remote_password"] = password
         duplicity.charm_config["remote_backup_url"] = path
 
-        assert duplicity._backup_url() == expected + "/unit-mock-0"
+        assert duplicity._backup_url() == expected
