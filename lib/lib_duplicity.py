@@ -13,8 +13,7 @@ class DuplicityHelper():
         Helper function to assemble the backup url into a format accepted
         by duplicity, based off of the 'backend' and 'remote_backup_url'
         defined in the charm config. _backup_url will be appended with the
-        charms unit name to avoid overwriting backups from other sources in a
-        scaled up environment.
+        charms unit name
         """
         backend = self.charm_config.get("backend").lower()
         prefix = "{}://".format(backend)
@@ -35,7 +34,7 @@ class DuplicityHelper():
                     url += "{}@".format(user)
             url += remote_path.replace(prefix, "")
         elif backend in ["ftp", "sftp"]:
-            # FTP requires remote credentials to be set, IIRC...
+            # FTP requires remote credentials to be set
             # TODO - impl. later
             raise NotImplementedError
         elif backend in ["s3", "file"]:
@@ -43,7 +42,8 @@ class DuplicityHelper():
         else:
             return None
 
-        url = "{}://".format(backend) + url
+        url = "{}://".format(backend) + url + "/{}".format(
+            hookenv.local_unit().replace("/", "-"))
         return url
 
     def _set_environment_vars(self):
