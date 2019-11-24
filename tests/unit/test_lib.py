@@ -28,4 +28,4 @@ class TestLib():
         duplicity.charm_config["remote_password"] = password
         duplicity.charm_config["remote_backup_url"] = path
 
-        assert duplicity._backup_url() == expected
+        assert duplicity._backup_url() == expected + "/unit-mock-0"
