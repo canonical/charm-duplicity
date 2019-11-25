@@ -51,8 +51,8 @@ async def app(model, series, source):
 @pytest.fixture(scope="module", autouse=True)
 async def deploy_backup_host(model):
     """
-    This is an autouse fixture which initiates non-blocking creation of a
-    backup host to be used during testing.
+    This is fixture initiates creation of a backup host to be used during
+    testing.
     """
     application_name = "backup-test-host"
     if not model.applications.get(application_name):
@@ -61,7 +61,7 @@ async def deploy_backup_host(model):
                            series="bionic")
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 async def backup_host(model):
     """ Gets and returns lib juju application object for the backup host """
     application_name = "backup-test-host"
@@ -253,14 +253,12 @@ def make_backup_test_data(model, app, tmpdir):
     # Use a directory that ubuntu user has permissions to, otherwise juju scp
     # will fail.
     source_backup_path = "/home/ubuntu/duplicity-backups"
-    # set the charms config value for a backup source directory
-    subprocess.check_call(["juju", "config", app.name, "-m", model.info.name,
-                          "aux_backup_directory={}".format(source_backup_path)
-                           ])
+
     # make the path on the remote units
     for unit in app.units:
         subprocess.check_call(["juju", "ssh", '-m', model.info.name, unit.name,
-                               "--", 'mkdir -p {}'.format(source_backup_path),
+                               "--", 'mkdir -p {}; touch \
+/home/ubuntu/.ssh/known_hosts'.format(source_backup_path),
                                ])
         # I didnt have luck with unit.ssh; Its Not Implemented yet
         # unit.ssh("mkdir -p {}".format(source_backup_path))
@@ -294,8 +292,8 @@ def make_backup_test_data(model, app, tmpdir):
     return source_backup_path
 
 
-@pytest.fixture
-def setup_ssh_encryption_keys(tmpdir, model):
+@pytest.fixture(scope="module")
+async def setup_backup_user(model, backup_host):
     """
     Fixture sets up ssh keypairs across units and the backup test host to
     enable rsync, ssh, scp, and ftp type transfers.
@@ -305,15 +303,29 @@ def setup_ssh_encryption_keys(tmpdir, model):
       host key fingerprint. Could be resolved by manually editing the
       known_hosts files on the units.
 
-    :param tmpdir:
-    :param model:
     :return:
     """
+    unit = backup_host.units[0]
+    # wait until unit is deployed
+    await model.block_until(lambda: unit.agent_status == 'idle', timeout=500)
+    username = "dup-agent01"
+    password = "dhvnclsithrjeuwk74jed"
+    subprocess.check_call(["juju", "ssh", "-m", model.info.name,
+                           unit.name, "--",
+                           """sudo useradd -p {passwd} {usern}; \
+sudo mkdir -p /home/{usern}/; \
+echo -e "{passwd}\n{passwd}" | sudo passwd {usern}; \
+sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config; \
+sudo systemctl restart sshd.service""".format(usern=username, passwd=password),
+                           ])
+    # Write user backup-agent to AllowUsers line in /etc/ssh/sshd_config ?
 
-    pass
+    # returns IP, user, password
+    return (unit.public_address, username, password)
 
-def test_do_backup_action(app, setup_ssh_encryption_keys,
-                          make_backup_test_data, tmpdir):
+@pytest.mark.parametrize("backend", ["ssh", "scp", "rsync"])
+async def test_do_backup_action(model, app, setup_backup_user,
+                          make_backup_test_data, tmpdir, backend):
     """
     This function tests the do backup action on all units of an application.
     The fixture make_backup_test_data runs three times yielding the remote path
@@ -326,9 +338,23 @@ def test_do_backup_action(app, setup_ssh_encryption_keys,
     them on the duplicity units for consumption.
     :return:
     """
-    # TODO -
+    # set the charms config value for a backup source directory
+    subprocess.check_call(["juju", "config", app.name, "-m", model.info.name,
+                           "aux_backup_directory={}".format(
+                              make_backup_test_data),
+                           "remote_user={}".format(setup_backup_user[1]),
+                           "remote_password={}".format(setup_backup_user[2]),
+                           "backend={}".format(backend),
+                           "remote_backup_url={}".format(setup_backup_user[0]),
+                           "disable_encryption=True"
+                           ])
     for unit in app.units:
-        pass
+        action = await unit.run_action('do-backup')
+        action = await action.wait()
+        assert action.status == 'completed'
+        # TOFIX - https://pastebin.canonical.com/p/TrVQbrZQmG/
+        # This test is failing due to non zero return from the duplicity cmd.
+        # it appears that we might be blocked at accepting the host key
 
 
 async def test_verify_action(app):
@@ -340,7 +366,7 @@ async def test_verify_action(app):
 
 async def test_list_current_files_action(app):
     unit = app.units[0]
-    action = await unit.run_action('')
+    action = await unit.run_action('list-current-files')
     action = await action.wait()
     assert action.status == 'completed'
 

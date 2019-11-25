@@ -67,13 +67,14 @@ class DuplicityHelper():
         :return:
         """
         # backups named after the unit
-        cmd = ['--name={}'.format(hookenv.local_unit().replace("/", "-"))]
+        cmd = []
 
         if self.charm_config.get("disable_encryption"):
             cmd.append("--no-encryption")
         elif self.charm.config.get("gpg_public_key"):
             cmd.append("--gpg-key={}".format(
                 self.charm.config.get("gpg_public_key")))
+        return cmd
 
     def render_backup_cron(self):
         """
@@ -104,9 +105,9 @@ class DuplicityHelper():
         cmd.append(self.charm_config.get("aux_backup_directory"))
         cmd.append(self._backup_url())
         # Add additional options
-        cmd.append(self._additional_options())
+        cmd.extend(self._additional_options())
 
-        hookenv.log("Duplicity Command: " + " ".join(cmd))
+        hookenv.log("Duplicity Command: {}".format(cmd))
         subprocess.check_call(cmd)
         return
 
