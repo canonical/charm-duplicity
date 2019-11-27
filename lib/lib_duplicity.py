@@ -8,6 +8,13 @@ BACKUP_CRON_FILE = '/etc/cron.d/periodic_backup'
 BACKUP_CRON_LOG_PATH = '/var/log/duplicity'
 
 
+def safe_remove_backup_cron():
+    if os.path.exists(BACKUP_CRON_FILE):
+        hookenv.log('Removing backup cron file.', level=hookenv.DEBUG)
+        os.remove(BACKUP_CRON_FILE)
+        hookenv.log('Backup cron file removed.', level=hookenv.DEBUG)
+
+
 class DuplicityHelper():
     def __init__(self):
         self.charm_config = hookenv.config()

@@ -9,7 +9,7 @@ See the following for information about reactive charms:
   * https://github.com/juju-solutions/layer-basic#overview
 """
 
-from lib_duplicity import DuplicityHelper
+from lib_duplicity import DuplicityHelper, safe_remove_backup_cron
 from charmhelpers.core import hookenv
 from charms.reactive import set_flag, clear_flag, when_not, when, hook
 from charmhelpers import fetch
@@ -129,12 +129,12 @@ def update_cron():
         helper.setup_backup_cron()
         hookenv.status_set('active', 'Ready.')
     else:
-        hookenv.log('Backup frequency set to {}. Skipping cron script setup.'.format(cron_backup_frequency))
+        hookenv.log('Backup frequency set to {}. Skipping or removing cron setup.'
+                    .format(cron_backup_frequency))
+        safe_remove_backup_cron()
         hookenv.status_set('active', 'Ready.')
 
 
 @hook()
 def stop():
-    hookenv.log('Entering stop hook')
-    if os.path.exists('/etc/cron.d/periodic_backup'):
-        os.remove('/etc/cron.d/periodic_backup')
+    safe_remove_backup_cron()
