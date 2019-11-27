@@ -11,7 +11,7 @@ See the following for information about reactive charms:
 
 from lib_duplicity import DuplicityHelper, safe_remove_backup_cron
 from charmhelpers.core import hookenv
-from charms.reactive import set_flag, clear_flag, when_not, when, hook
+from charms.reactive import set_flag, clear_flag, when_not, when, hook, when_any, when_all
 from charmhelpers import fetch
 
 import os
@@ -37,8 +37,10 @@ def install_duplicity():
     set_flag('duplicity.installed')
 
 
-@when('config.set.backend')
-@when('config.set.remote_backup_url')
+@when_any('config.changed.backend',
+          'config.changed.aws_access_key_id',
+          'config.changed.aws_secret_access_key'
+          'config.changed.remote_backup_url')
 def validate_backend():
     """
     Validates that the config value for 'backend' is something that duplicity
@@ -49,23 +51,26 @@ def validate_backend():
     if backend not in ["s3", "ssh", "scp", "sftp", "ftp", "rsync", "file"]:
         hookenv.status_set('blocked',
                            'Unrecognized backend "{}"'.format(backend))
-        return False
+        clear_flag('duplicity.valid_backend')
+        return
     elif backend == "s3":
         # make sure 'aws_access_key_id' and 'aws_secret_access_key' exist
         if not hookenv.config().get("aws_access_key_id") and \
                 not hookenv.config().get("aws_secret_access_key"):
             hookenv.status_set('blocked', 'S3 backups require \
 "aws_access_key_id" and "aws_secret_access_key" to be set')
-            return False
+            clear_flag('duplicity.valid_backend')
+            return
     if not hookenv.config().get("remote_backup_url"):
         # remote url is unset
         hookenv.status_set('blocked', 'Backup path is required. Set config \
 for "remote_backup_url"')
-        return False
-    return True
+        clear_flag('duplicity.valid_backend')
+        return
+    set_flag('duplicity.valid_backend')
 
 
-@when('config.set.aux_backup_directory')
+@when('config.changed.aux_backup_directory')
 def create_aux_backup_directory():
     aux_backup_dir = hookenv.config().get("aux_backup_directory")
     if aux_backup_dir:
@@ -76,21 +81,24 @@ def create_aux_backup_directory():
                 aux_backup_dir))
 
 
-@when('config.set.backup_frequency')
+@when('config.changed.backup_frequency')
 def validate_cron_frequency():
     cron_frequency = hookenv.config().get("backup_frequency").lower()
-    if cron_frequency not in ["daily", "weekly", "monthly", "manual", "auto"]:
+    no_cron_options = ['manual', 'auto']
+    create_cron_options = ['daily', 'weekly', 'monthly']
+    if cron_frequency in no_cron_options:
+        set_flag('duplicity.remove_backup_cron')
+    elif cron_frequency in create_cron_options:
+        set_flag('duplicity.create_backup_cron')
+    else:
+        clear_flag('duplicity.create_backup_cron')
         hookenv.status_set('blocked',
-                           'Unknown value "{}" for cron frequency'.format(
-                               cron_frequency)
-                           )
-        return False
-    return True
+                           'Unknown value "{}" for cron frequency'.format(cron_frequency))
 
 
-@when('config.set.encryption_passphrase')
-@when('config.set.gpg_public_key')
-@when('config.set.disable_encryption')
+@when_any('config.changed.encryption_passphrase',
+          'config.changed.gpg_public_key',
+          'config.changed.disable_encryption')
 def validate_encryption_method():
     """
     Function to check that a viable encryption method is configured.
@@ -101,38 +109,36 @@ def validate_encryption_method():
     if not passphrase and not gpg_key and not disable:
         hookenv.status_set('blocked', 'Must set either an encryption \
 passphrase, GPG public key, or disable encryption')
-        return False
-    return True
+        clear_flag('duplicity.valid_encryption_method')
+        return
+    set_flag('duplicity.valid_encryption_method')
 
 
-@when('config.changed')
-def validate_configs():
-    hookenv.status_set("maintenance", "Configuring Duplicity")
-    clear_flag('duplicity.configured')
-    valid = validate_backend() and \
-        validate_cron_frequency() and \
-        validate_encryption_method()
-
-    if valid:
-        set_flag('duplicity.configured')
-
-
-@when('duplicity.configured')
-def update_cron():
+@when_all('duplicity.create_backup_cron',
+          'duplicity.valid_encryption_method',
+          'duplicity.valid_backend')
+def create_backup_cron():
     """
     Finalizes the backup cron script when duplicity has been configured
     successfully. The cron script will be a call to juju run-action do-backup
     """
+    hookenv.status_set('active', 'Rendering duplicity crontab')
+    helper.setup_backup_cron()
+    hookenv.status_set('active', 'Ready.')
+    clear_flag('duplicity.create_backup_cron')
+
+
+@when('duplicity.remove_backup_cron')
+def remove_backup_cron():
+    """
+    Stops and removes the backup cron in case of duplicity not being configured correctly. This
+    ensures backups won't run under an incorrect config.
+    """
     cron_backup_frequency = hookenv.config().get('backup_frequency')
-    if cron_backup_frequency not in ['manual', 'auto']:
-        hookenv.status_set('active', 'Rendering duplicity crontab')
-        helper.setup_backup_cron()
-        hookenv.status_set('active', 'Ready.')
-    else:
-        hookenv.log('Backup frequency set to {}. Skipping or removing cron setup.'
-                    .format(cron_backup_frequency))
-        safe_remove_backup_cron()
-        hookenv.status_set('active', 'Ready.')
+    hookenv.log(
+        'Backup frequency set to {}. Skipping or removing cron setup.'.format(cron_backup_frequency))
+    safe_remove_backup_cron()
+    clear_flag('duplicity.remove_backup_cron')
 
 
 @hook()
