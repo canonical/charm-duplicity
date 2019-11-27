@@ -131,8 +131,8 @@ def create_backup_cron():
 @when('duplicity.remove_backup_cron')
 def remove_backup_cron():
     """
-    Stops and removes the backup cron in case of duplicity not being configured correctly. This
-    ensures backups won't run under an incorrect config.
+    Stops and removes the backup cron in case of duplicity not being configured correctly or manual|auto
+    config option is set. The former ensures backups won't run under an incorrect config.
     """
     cron_backup_frequency = hookenv.config().get('backup_frequency')
     hookenv.log(
