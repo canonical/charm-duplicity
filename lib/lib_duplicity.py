@@ -1,7 +1,11 @@
 import subprocess
 import os
 
-from charmhelpers.core import hookenv
+from charmhelpers.core import hookenv, templating
+
+
+BACKUP_CRON_FILE = '/etc/cron.d/periodic_backup'
+BACKUP_CRON_LOG_PATH = '/var/log/duplicity'
 
 
 class DuplicityHelper():
@@ -76,16 +80,34 @@ class DuplicityHelper():
                 self.charm.config.get("gpg_public_key")))
         return cmd
 
-    def render_backup_cron(self):
+    def setup_backup_cron(self):
         """
-        This function writes out the duplicity backup procedure to a script
-        which can be run independently of the charm and
+        Sets up the backup cron to run on the unit. Renders the cron and ensures logging
+        directory exists.
+        """
+        self._setup_cron_logging_directory()
+        self._render_backup_cron()
 
-        :return:
+    @staticmethod
+    def _setup_cron_logging_directory():
         """
-        #TODO: This is important & one of the primary features of the charm to
-        # support.
-        pass
+        Ensures cron logging directory is created.
+        """
+        if not os.path.exists(BACKUP_CRON_LOG_PATH):
+            os.mkdir(BACKUP_CRON_LOG_PATH)
+
+    def _render_backup_cron(self):
+        """
+        Render backup cron.
+        """
+        cron_ctx = dict(
+            frequency=self.charm_config.get('backup_frequency'),
+            unit_name=hookenv.local_unit(),
+            charm_dir=hookenv.charm_dir()
+        )
+        templating.render('periodic_backup', BACKUP_CRON_FILE, cron_ctx)
+        with open('/etc/cron.d/periodic_backup', 'a') as cron_file:
+            cron_file.write('\n')
 
     def do_backup(self, **kwargs):
         """ Execute the backup call to duplicity as configured by the charm

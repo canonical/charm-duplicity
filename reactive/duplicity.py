@@ -10,8 +10,8 @@ See the following for information about reactive charms:
 """
 
 from lib_duplicity import DuplicityHelper
-from charmhelpers.core import hookenv, host
-from charms.reactive import set_flag, clear_flag, when_not, when
+from charmhelpers.core import hookenv
+from charms.reactive import set_flag, clear_flag, when_not, when, hook
 from charmhelpers import fetch
 
 import os
@@ -123,6 +123,18 @@ def update_cron():
     Finalizes the backup cron script when duplicity has been configured
     successfully. The cron script will be a call to juju run-action do-backup
     """
-    hookenv.status_set('active', 'Rendering duplicity crontab')
-    helper.render_backup_cron()
-    hookenv.status_set('active', 'Ready.')
+    cron_backup_frequency = hookenv.config().get('backup_frequency')
+    if cron_backup_frequency not in ['manual', 'auto']:
+        hookenv.status_set('active', 'Rendering duplicity crontab')
+        helper.setup_backup_cron()
+        hookenv.status_set('active', 'Ready.')
+    else:
+        hookenv.log('Backup frequency set to {}. Skipping cron script setup.'.format(cron_backup_frequency))
+        hookenv.status_set('active', 'Ready.')
+
+
+@hook()
+def stop():
+    hookenv.log('Entering stop hook')
+    if os.path.exists('/etc/cron.d/periodic_backup'):
+        os.remove('/etc/cron.d/periodic_backup')
