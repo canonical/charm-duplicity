@@ -28,7 +28,5 @@ def cli_log(msg, level=charmhelpers.core.hookenv.INFO):
     print('{}: {}'.format(time.ctime(), msg), file=output)
 
 
-# the rotate_and_sync_keys() function checks for leadership AND whether to
-# rotate the keys or not.
 if __name__ == "__main__":
     helper = lib_duplicity.DuplicityHelper().do_backup()
