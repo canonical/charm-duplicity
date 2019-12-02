@@ -83,3 +83,13 @@ async def model(controller):
 async def jujutools(controller, model):
     tools = JujuTools(controller, model)
     return tools
+
+
+@pytest.fixture(scope="module")
+def dummy_working_config():
+    return dict(
+        backend='file',
+        remote_backup_url='some.url',
+        aux_backup_directory='/home/ubuntu/test',
+        disable_encryption='true'
+    )

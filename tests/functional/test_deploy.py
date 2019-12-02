@@ -12,9 +12,7 @@ from tempfile import NamedTemporaryFile
 pytestmark = pytest.mark.asyncio
 
 JUJU_REPO = os.getenv('JUJU_REPOSITORY', '.').rstrip('/')
-SERIES = ['xenial',
-          'bionic',
-         ]
+SERIES = ['xenial', 'bionic']
 SOURCES = [('local', '{}/builds/duplicity'.format(JUJU_REPO)),
            # ('jujucharms', 'cs:...'),
            ]
@@ -45,7 +43,23 @@ async def app(model, series, source):
     This fixture tries to get and return the application object if it exists.
     """
     application_name = '{}-{}-{}'.format("duplicity", series, source[0])
-    return model.applications.get(application_name)
+    application = model.applications.get(application_name)
+    if not application:
+        cmd = ['juju', 'deploy', source[1], '-m', model.info.name, '--series',
+               series, application_name]
+        subprocess.check_call(cmd)
+        assert model.applications.get(application_name)
+        application = model.applications.get(application_name)
+        await model.block_until(lambda: app.status in ['waiting', 'active'])
+    if not application.units:
+        relation = "{}:general-info {}:juju-info".format(app.name, principal_app.name)
+        if list(filter(lambda x: x.key == relation, app.relations)):
+            pytest.skip("Relation {} already exists.".format(relation))
+        else:
+            await principal_app.add_relation("juju-info", app.name)
+        rel = filter(lambda rel: rel.key == relation, app.relations)
+        assert rel
+    return application
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -93,27 +107,23 @@ async def principal_app(model, principal_name, series):
     return model.applications.get(application_name)
 
 
-@pytest.mark.skipif(os.getenv("PYTEST_MODEL") is not None and
-                    os.getenv("PYTEST_KEEP_MODEL") is not None and
-                    os.getenv("PYTEST_KEEP_MODEL").lower() == 'true',
-                    reason="Applications are already deployed.")
-@pytest.mark.parametrize("seriesx",  SERIES + [pytest.param('cosmic',
-                                    marks=pytest.mark.xfail(
-                                    reason='Charm version not supported'))])
-async def test_deploy_duplicity_application(model, source, seriesx):
-    """
-    Test function that verifies successful deployment of the duplicity
-    application to the juju model.
-    """
-    # unfortunately juju lib doesnt like to create subordinates, using sp
-    application_name = '{}-{}-{}'.format("duplicity", seriesx, source[0])
-    cmd = ['juju', 'deploy', source[1], '-m', model.info.name, '--series',
-           seriesx, application_name]
-    subprocess.check_call(cmd)
-    await asyncio.sleep(3)
-    assert model.applications.get(application_name)
-    app = model.applications.get(application_name)
-    await model.block_until(lambda: app.status in ['waiting', 'active'])
+# @pytest.mark.parametrize("seriesx",  SERIES + [pytest.param('cosmic',
+#                                     marks=pytest.mark.xfail(
+#                                     reason='Charm version not supported'))])
+# async def test_deploy_duplicity_application(model, source, seriesx):
+#     """
+#     Test function that verifies successful deployment of the duplicity
+#     application to the juju model.
+#     """
+#     # unfortunately juju lib doesnt like to create subordinates, using sp
+#     application_name = '{}-{}-{}'.format("duplicity", seriesx, source[0])
+#     cmd = ['juju', 'deploy', source[1], '-m', model.info.name, '--series',
+#            seriesx, application_name]
+#     subprocess.check_call(cmd)
+#     await asyncio.sleep(3)
+#     assert model.applications.get(application_name)
+#     app = model.applications.get(application_name)
+#     await model.block_until(lambda: app.status in ['waiting', 'active'])
 
 
 async def test_deploy_duplicity_unit(model, principal_app, app):
@@ -214,6 +224,7 @@ async def test_duplicity_status_encryption_settings(model, app,
     with an encryption passphrase, gpg public key, and encryption is not
     disabled.
     """
+
     subprocess.check_call(['juju',
                            'config',
                            app.name,
@@ -389,3 +400,29 @@ async def test_file_stat(app, jujutools):
     assert stat.filemode(fstat.st_mode) == '-rw-r--r--'
     assert fstat.st_uid == 0
     assert fstat.st_gid == 0
+
+
+@pytest.mark.parametrize('frequency_option', ['daily', 'weekly', 'monthly'])
+async def test_cron_creation(app, jujutools, dummy_working_config, frequency_option):
+    dummy_working_config['backup_frequency'] = frequency_option
+    test_cron_correct = dict(
+        path='/etc/cron.d/periodic_backup',
+        contains=frequency_option
+    )
+    await jujutools.test_config(dummy_working_config, app, tests=[test_cron_correct])
+
+
+@pytest.mark.parametrize('frequency_option', ['auto', 'manual'])
+async def test_no_cron(app, jujutools, dummy_working_config, frequency_option):
+    dummy_working_config['backup_frequency'] = frequency_option
+    cron_location = '/etc/cron.d/periodic_backup'
+    original_config = await jujutools.convert_config(await app.get_config())
+    a_unit = app.units[0]
+    await app.set_config(dummy_working_config)
+    await jujutools.model.block_until(lambda: a_unit.agent_status == "executing")
+    await jujutools.model.block_until(lambda: a_unit.agent_status == "idle")
+    file_exists = await jujutools.remote_object(imports='import os;',
+                                                remote_cmd='os.path.exists("{}")'.format(cron_location),
+                                                target=a_unit)
+    assert not file_exists
+    await app.set_config(original_config)
