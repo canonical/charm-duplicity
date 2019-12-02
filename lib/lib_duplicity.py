@@ -19,6 +19,20 @@ class DuplicityHelper():
     def __init__(self):
         self.charm_config = hookenv.config()
 
+    @property
+    def backup_cmd(self):
+        cmd = list('duplicity')
+        cmd.append('full' if self.charm_config.get('full_backup') else 'incr')
+        cmd.extend([self.charm_config.get('aux_backup_directory'), self._backup_url()])
+        cmd.extend(self._additional_options())
+        return cmd
+
+    @property
+    def list_files_cmd(self):
+        cmd = ['duplicity', 'list-current-files', self._backup_url()]
+        cmd.extend(self._additional_options())
+        return cmd
+
     def _backup_url(self):
         """
         Helper function to assemble the backup url into a format accepted
@@ -116,7 +130,7 @@ class DuplicityHelper():
         with open('/etc/cron.d/periodic_backup', 'a') as cron_file:
             cron_file.write('\n')
 
-    def do_backup(self, **kwargs):
+    def do_backup(self, logger=hookenv.log, **kwargs):
         """ Execute the backup call to duplicity as configured by the charm
 
         :param: kwargs
@@ -124,21 +138,10 @@ class DuplicityHelper():
         """
         self._set_environment_vars()
 
-        # Create the duplicity backup command
-        if self.charm_config.get("full_backup"):
-            cmd = ["duplicity", "full"]
-        else:
-            cmd = ["duplicity", "incr"]
+        cmd = self.backup_cmd
 
-        # Add source and destination
-        cmd.append(self.charm_config.get("aux_backup_directory"))
-        cmd.append(self._backup_url())
-        # Add additional options
-        cmd.extend(self._additional_options())
-
-        hookenv.log("Duplicity Command: {}".format(cmd))
+        logger("Duplicity Command: {}".format(cmd))
         subprocess.check_call(cmd)
-        return
 
     def cleanup(self):
         #TODO
@@ -162,9 +165,11 @@ class DuplicityHelper():
         :return:
         """
         self._set_environment_vars()
-        cmd = "duplicity", "list-current-files", self._backup_url()
-        cmd.append(self._additional_options())
-        subprocess.check_call(cmd)
+        cmd = self.list_files_cmd
+        try:
+            subprocess.check_call(cmd)
+        except subprocess.CalledProcessError as e:
+            pass
 
     def restore(self):
         #TODO
