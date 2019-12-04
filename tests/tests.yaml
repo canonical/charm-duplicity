@@ -1,0 +1,14 @@
+#charm_name: duplicity
+tests:
+  - tests.functional.test_duplicity.DuplicityBackupCronTest
+  - tests.functional.test_duplicity.DuplicityEncryptionValidationTest
+#configure:
+#  - tests.functional.Y
+gate_bundles:
+  - xenial
+  - bionic
+dev_bundles:
+  - xenial
+  - bionic
+smoke_bundles:
+  - bionic
