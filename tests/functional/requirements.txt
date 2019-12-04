@@ -1,6 +1,4 @@
 flake8
 juju
 mock
-pytest
-pytest-asyncio
-requests
+git+https://github.com/openstack-charmers/zaza.git#egg=zaza
