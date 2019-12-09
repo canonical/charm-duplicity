@@ -25,10 +25,7 @@ unittest:
 	@tox -e unit
 
 functional: build
-	@PYTEST_KEEP_MODEL=$(PYTEST_KEEP_MODEL) \
-	    PYTEST_CLOUD_NAME=$(PYTEST_CLOUD_NAME) \
-	    PYTEST_CLOUD_REGION=$(PYTEST_CLOUD_REGION) \
-	    tox -e functional
+	@tox -e functional
 
 build:
 	@echo "Building charm to base directory $(JUJU_REPOSITORY)"
