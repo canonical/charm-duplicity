@@ -8,6 +8,7 @@ See the following for information about reactive charms:
   * https://jujucharms.com/docs/devel/developer-getting-started
   * https://github.com/juju-solutions/layer-basic#overview
 """
+import base64
 
 from lib_duplicity import DuplicityHelper, safe_remove_backup_cron
 from charmhelpers.core import hookenv
@@ -40,7 +41,8 @@ def install_duplicity():
 @when_any('config.changed.backend',
           'config.changed.aws_access_key_id',
           'config.changed.aws_secret_access_key'
-          'config.changed.remote_backup_url')
+          'config.changed.remote_backup_url',
+          'config.changed.known_host_key')
 def validate_backend():
     """
     Validates that the config value for 'backend' is something that duplicity
@@ -59,6 +61,20 @@ def validate_backend():
                 not hookenv.config().get("aws_secret_access_key"):
             hookenv.status_set('blocked', 'S3 backups require \
 "aws_access_key_id" and "aws_secret_access_key" to be set')
+            clear_flag('duplicity.valid_backend')
+            return
+    if backend in ['scp', 'rsync', 'sftp']:
+        known_host_key = hookenv.config().get('known_host_key')
+        if not known_host_key:
+            hookenv.status_set('blocked', '{} backend requires known_host_key to be set.'.format(backend))
+            clear_flag('duplicity.valid_backend')
+            return
+        else:
+            helper.update_known_host_file(known_host_key)
+        if not hookenv.config().get('remote_password') and not hookenv.config().get('private_ssh_key'):
+            hookenv.status_set(
+                'blocked',
+                'Backend "{}" requires either remote_password or private_ssh_key to be set'.format(backend))
             clear_flag('duplicity.valid_backend')
             return
     if not hookenv.config().get("remote_backup_url"):
@@ -88,9 +104,12 @@ def validate_cron_frequency():
     create_cron_options = ['daily', 'weekly', 'monthly']
     if cron_frequency in no_cron_options:
         set_flag('duplicity.remove_backup_cron')
+        set_flag('duplicity.valid_backup_frequency')
     elif cron_frequency in create_cron_options:
         set_flag('duplicity.create_backup_cron')
+        set_flag('duplicity.valid_backup_frequency')
     else:
+        clear_flag('duplicity.valid_backup_frequency')
         clear_flag('duplicity.create_backup_cron')
         hookenv.status_set('blocked',
                            'Unknown value "{}" for cron frequency'.format(cron_frequency))
@@ -112,6 +131,13 @@ passphrase, GPG public key, or disable encryption')
         clear_flag('duplicity.valid_encryption_method')
         return
     set_flag('duplicity.valid_encryption_method')
+
+
+@when_all('duplicity.valid_encryption_method',
+          'duplicity.valid_backend',
+          'duplicity.valid_backup_frequency')
+def app_ready():
+    hookenv.status_set('active', 'Ready')
 
 
 @when_all('duplicity.create_backup_cron',
@@ -139,6 +165,18 @@ def remove_backup_cron():
         'Backup frequency set to {}. Skipping or removing cron setup.'.format(cron_backup_frequency))
     safe_remove_backup_cron()
     clear_flag('duplicity.remove_backup_cron')
+
+
+@when('config.changed.private_ssh_key')
+def update_private_ssh_key():
+    private_key = hookenv.config().get('private_ssh_key')
+    if private_key:
+        hookenv.log('Updating private ssh key file.')
+        encoded_private_key = hookenv.config().get('private_ssh_key')
+        decoded_private_key = base64.b64decode(encoded_private_key).decode('utf-8')
+        with open('/root/.ssh/duplicity_id_rsa', 'w') as f:
+            f.write(decoded_private_key)
+        hookenv.log('Updated private ssh key file.')
 
 
 @hook()
