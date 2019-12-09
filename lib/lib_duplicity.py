@@ -154,17 +154,17 @@ class DuplicityHelper():
     def cleanup(self):
         #TODO
         # duplicity cleanup <target_url>
-        pass
+        raise NotImplementedError()
 
     def verify(self):
         #TODO
         # duplicity verify <target_url> <source_dir>
-        pass
+        raise NotImplementedError()
 
     def collection_status(self):
         #TODO
         # duplicity collection-status <target_url>
-        pass
+        raise NotImplementedError()
 
     def list_current_files(self, **kwargs):
         """
@@ -172,29 +172,30 @@ class DuplicityHelper():
         directory.
         :return:
         """
-        self._set_environment_vars()
-        cmd = self.list_files_cmd
-        try:
-            subprocess.check_call(cmd)
-        except subprocess.CalledProcessError as e:
-            pass
+        raise NotImplementedError()
+        # self._set_environment_vars()
+        # cmd = self.list_files_cmd
+        # try:
+        #     subprocess.check_call(cmd)
+        # except subprocess.CalledProcessError as e:
+        #     pass
 
     def restore(self):
         #TODO
         # duplicity restore <source_url> <target_dir>
-        pass
+        raise NotImplementedError()
 
     def remove_older_than(self):
         #TODO
         # duplicity remove-older-than time [options] target_url
-        pass
+        raise NotImplementedError()
 
     def remove_all_but_n_full(self):
         #TODO
         # duplicity remove-all-but-n-full <count> <target_url>
-        pass
+        raise NotImplementedError()
 
     def remove_all_inc_of_but_n_full(self):
         #TODO
         # duplicity remove-all-inc-of-but-n-full <count> <target_url>
-        pass
+        raise NotImplementedError()
