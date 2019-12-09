@@ -134,7 +134,8 @@ class DuplicityHelper():
 
     @staticmethod
     def update_known_host_file(known_host_key):
-        with open('/root/.ssh/known_hosts', 'a+') as known_host_file:
+        permissions = 'a+' if os.path.exists('root_known_host_path') else 'w+'
+        with open('/root/.ssh/known_hosts', permissions) as known_host_file:
             if known_host_key not in known_host_file.read():
                 print(known_host_key, file=known_host_file)
 
