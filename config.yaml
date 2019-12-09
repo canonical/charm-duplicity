@@ -67,7 +67,7 @@ options:
     default: "manual"
     description: |
       Sets the crontab backup frequency to one of the following values:
-      daily|weekly|monthly|manual|auto
+      hourly|daily|weekly|monthly|manual
       When set to auto, the cron will only backup the files if they have
       changed.
   disable_encryption:
@@ -89,3 +89,18 @@ options:
     description: |
       Sets the GPG Public Key used for asymmetrical encryption. When set, this
       becomes the primary method for encryption.
+  known_host_key:
+    type: string
+    default: ''
+    description: |
+      Host key for remote backup host when using scp, rsync, and sftp backends.
+      Valid host key required when using these backends. The format is:
+      hostname[,ip] algo public_key
+
+      ex: example.com,10.0.0.0 ssh-rsa AAABBBCCC...
+  private_ssh_key:
+    type: string
+    default: ''
+    description:
+      base64 encoded private SSH key for SSH authentication from duplicity
+      application unit and the remote backup host.

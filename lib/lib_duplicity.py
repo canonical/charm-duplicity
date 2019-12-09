@@ -21,7 +21,9 @@ class DuplicityHelper():
 
     @property
     def backup_cmd(self):
-        cmd = list('duplicity')
+        cmd = ['duplicity']
+        if self.charm_config.get('private_ssh_key'):
+            cmd.append('--ssh-options=-oIdentityFile=/root/.ssh/duplicity_id_rsa')
         cmd.append('full' if self.charm_config.get('full_backup') else 'incr')
         cmd.extend([self.charm_config.get('aux_backup_directory'), self._backup_url()])
         cmd.extend(self._additional_options())
@@ -96,9 +98,9 @@ class DuplicityHelper():
 
         if self.charm_config.get("disable_encryption"):
             cmd.append("--no-encryption")
-        elif self.charm.config.get("gpg_public_key"):
+        elif self.charm_config.config.get("gpg_public_key"):
             cmd.append("--gpg-key={}".format(
-                self.charm.config.get("gpg_public_key")))
+                self.charm_config.config.get("gpg_public_key")))
         return cmd
 
     def setup_backup_cron(self):
@@ -130,6 +132,12 @@ class DuplicityHelper():
         with open('/etc/cron.d/periodic_backup', 'a') as cron_file:
             cron_file.write('\n')
 
+    @staticmethod
+    def update_known_host_file(known_host_key):
+        with open('/root/.ssh/known_hosts', 'a+') as known_host_file:
+            if known_host_key not in known_host_file.read():
+                print(known_host_key, file=known_host_file)
+
     def do_backup(self, logger=hookenv.log, **kwargs):
         """ Execute the backup call to duplicity as configured by the charm
 
@@ -137,9 +145,8 @@ class DuplicityHelper():
         :type: dictionary of values that may be used instead of
         """
         self._set_environment_vars()
-
         cmd = self.backup_cmd
-
+        # TODO: Clean password from command!!!
         logger("Duplicity Command: {}".format(cmd))
         subprocess.check_call(cmd)
 
