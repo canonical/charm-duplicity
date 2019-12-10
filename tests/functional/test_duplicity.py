@@ -186,8 +186,25 @@ class DuplicityBackupCommandTest(BaseDuplicityTest):
         zaza.model.run_action(self.duplicity_unit.name, self.action, raise_on_failure=True)
 
     @utils.config_restore('duplicity')
-    def test_sftp_full_do_backup(self):
+    def xtest_sftp_full_do_backup(self):
         additional_config = dict(backend='sftp', full_backup='True')
+        new_config = self.get_config(**additional_config)
+        zaza.model.set_application_config(self.application_name, new_config)
+        zaza.model.run_action(self.duplicity_unit.name, self.action, raise_on_failure=True)
+
+    @utils.config_restore('duplicity')
+    def xtest_sftp_full_ssh_key_do_backup(self):
+        additional_config = dict(backend='sftp',
+                                 full_backup='True',
+                                 private_ssh_key=self.get_ssh_priv_key(),
+                                 remote_password='')
+        new_config = self.get_config(**additional_config)
+        zaza.model.set_application_config(self.application_name, new_config)
+        zaza.model.run_action(self.duplicity_unit.name, self.action, raise_on_failure=True)
+
+    @utils.config_restore('duplicity')
+    def test_ftp_full_do_backup(self):
+        additional_config = dict(backend='ftp', full_backup='True')
         new_config = self.get_config(**additional_config)
         zaza.model.set_application_config(self.application_name, new_config)
         zaza.model.run_action(self.duplicity_unit.name, self.action, raise_on_failure=True)
