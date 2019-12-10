@@ -52,6 +52,20 @@ def add_pub_key_to_backup_host():
     _check_run_result(result)
 
 
+def setup_ftp():
+    backup_host_unit = _get_unit('backup-host')
+    install_command = 'apt install -y vsftpd'
+    result = zaza.model.run_on_unit(backup_host_unit.name, install_command, timeout=15)
+    _check_run_result(result)
+    vsconf = ['write_enable', 'ascii_upload_enable', 'ascii_download_enable', 'chroot_local_user',
+              'chroot_list_enable', 'ls_recurse_enable']
+    configure_command = 'for i in {}; do sed -i "s/#$i/$i/" /etc/vsftpd.conf; done && ' \
+                        'echo ubuntu > /etc/vsftpd.chroot_list && ' \
+                        'systemctl restart vsftpd'.format(' '.join(vsconf))
+    result = zaza.model.run_on_unit(backup_host_unit.name, configure_command, timeout=15)
+    _check_run_result(result)
+
+
 def _check_run_result(result, codes=None):
     if not result:
         raise Exception('Failed to get a result from run_on_unit command.')
