@@ -20,7 +20,7 @@ def do_backup(*args):
         hookenv.action_fail('Duplicity unit must be in ready state to execute do-backup command.')
         return
     output = helper.do_backup(logger=hookenv.log)
-    hookenv.action_set(dict(output=output.decode('utf-8')))
+    hookenv.function_set(dict(output=output.decode('utf-8')))
 
 
 ACTIONS = {
