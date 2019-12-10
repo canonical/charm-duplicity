@@ -34,6 +34,7 @@ def install_duplicity():
     fetch.apt_install("duplicity")
     fetch.apt_install("python-paramiko")
     fetch.apt_install("python-boto")
+    fetch.apt_install("lftp")
     hookenv.status_set('active', '')
     set_flag('duplicity.installed')
 
