@@ -139,13 +139,13 @@ class DuplicityHelper():
         """ Execute the backup call to duplicity as configured by the charm
 
         :param: kwargs
-        :type: dictionary of values that may be used instead of
+        :type: dictionary of values that may be used instead of config values
         """
         self._set_environment_vars()
         cmd = self.backup_cmd
         # TODO: Clean password from command!!!
         logger("Duplicity Command: {}".format(cmd))
-        subprocess.check_call(cmd)
+        return subprocess.check_output(cmd, stderr=subprocess.STDOUT)
 
     def cleanup(self):
         #TODO
