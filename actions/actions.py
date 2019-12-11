@@ -17,7 +17,7 @@ helper = DuplicityHelper()
 def do_backup(*args):
     status, _ = hookenv.status_get()
     if status != 'active':
-        hookenv.action_fail('Duplicity unit must be in ready state to execute do-backup command.')
+        hookenv.function_fail('Duplicity unit must be in ready state to execute do-backup command.')
         return
     output = helper.do_backup(logger=hookenv.log)
     hookenv.function_set(dict(output=output.decode('utf-8')))
@@ -36,10 +36,12 @@ def main(args):
     try:
         action(args)
     except CalledProcessError as e:
-        hookenv.action_fail('Command "{}" failed with return code "{}" and message:\n{}'.format(
-            e.cmd, e.returncode, e.output.decode('utf-8')))
+        err_msg = 'Command "{}" failed with return code "{}" and error output:\n{}'.format(
+            e.cmd, e.returncode, e.output.decode('utf-8'))
+        hookenv.log(err_msg, level=hookenv.ERROR)
+        hookenv.function_fail(err_msg)
     except Exception as e:
-        hookenv.action_fail(str(e))
+        hookenv.function_fail(str(e))
 
 
 if __name__ == '__main__':
