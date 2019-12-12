@@ -20,7 +20,7 @@ def main():
         output = lib_duplicity.DuplicityHelper().do_backup()
         hookenv.log('Periodic backup complete with following output:\n{}'.format(output.decode('utf-8')))
     except subprocess.CalledProcessError as e:
-        err_msg = 'Perioid backup failed. Command "{}" failed with return code "{}" and error output:\n{}'.format(
+        err_msg = 'Periodic backup failed. Command "{}" failed with return code "{}" and error output:\n{}'.format(
             e.cmd, e.returncode, e.output.decode('utf-8'))
         hookenv.log(err_msg, level=hookenv.ERROR)
         hookenv.status_set('error', error_workload_status)
