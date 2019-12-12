@@ -7,3 +7,9 @@ includes:
   - layer:basic
   - layer:options
   - layer:apt
+options:
+  basic:
+    python_packages:
+      - croniter
+    use_venv: True
+    include_system_packages: true

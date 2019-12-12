@@ -14,10 +14,12 @@ from lib_duplicity import DuplicityHelper, safe_remove_backup_cron
 from charmhelpers.core import hookenv
 from charms.reactive import set_flag, clear_flag, when_not, when, hook, when_any, when_all
 from charmhelpers import fetch
+import croniter
 
 import os
 
 helper = DuplicityHelper()
+PRIVATE_SSH_KEY_PATH = '/root/.ssh/duplicity_id_rsa'
 
 
 @when_not('duplicity.installed')
@@ -101,19 +103,23 @@ def create_aux_backup_directory():
 @when('config.changed.backup_frequency')
 def validate_cron_frequency():
     cron_frequency = hookenv.config().get("backup_frequency").lower()
-    no_cron_options = ['manual', 'auto']
-    create_cron_options = ['daily', 'weekly', 'monthly']
+    no_cron_options = ['manual']
+    create_cron_options = ['hourly', 'daily', 'weekly', 'monthly']
     if cron_frequency in no_cron_options:
         set_flag('duplicity.remove_backup_cron')
-        set_flag('duplicity.valid_backup_frequency')
     elif cron_frequency in create_cron_options:
         set_flag('duplicity.create_backup_cron')
-        set_flag('duplicity.valid_backup_frequency')
     else:
-        clear_flag('duplicity.valid_backup_frequency')
-        clear_flag('duplicity.create_backup_cron')
-        hookenv.status_set('blocked',
-                           'Unknown value "{}" for cron frequency'.format(cron_frequency))
+        try:
+            croniter.croniter(cron_frequency)
+            set_flag('duplicity.create_backup_cron')
+        except (croniter.CroniterBadCronError, croniter.CroniterBadDateError, croniter.CroniterNotAlphaError):
+            clear_flag('duplicity.valid_backup_frequency')
+            clear_flag('duplicity.create_backup_cron')
+            hookenv.status_set('blocked',
+                               'Invalid value "{}" for cron frequency'.format(cron_frequency))
+            return
+    set_flag('duplicity.valid_backup_frequency')
 
 
 @when_any('config.changed.encryption_passphrase',
@@ -137,6 +143,8 @@ passphrase, GPG public key, or disable encryption')
 @when_all('duplicity.valid_encryption_method',
           'duplicity.valid_backend',
           'duplicity.valid_backup_frequency')
+@when_not('duplicity.invalid_private_ssh_key',
+          'duplicity.failed_periodic_backup')
 def app_ready():
     hookenv.status_set('active', 'Ready')
 
@@ -174,10 +182,24 @@ def update_private_ssh_key():
     if private_key:
         hookenv.log('Updating private ssh key file.')
         encoded_private_key = hookenv.config().get('private_ssh_key')
-        decoded_private_key = base64.b64decode(encoded_private_key).decode('utf-8')
-        with open('/root/.ssh/duplicity_id_rsa', 'w') as f:
+        try:
+            decoded_private_key = base64.b64decode(encoded_private_key).decode('utf-8')
+        except UnicodeDecodeError as e:
+            hookenv.log(
+                'Failed to decode private key {} to utf-8 with error: {}.\nNot creating ssh key file'.format(
+                    encoded_private_key, e),
+                level=hookenv.ERROR)
+            hookenv.status_set(workload_state='blocked',
+                               message='invalid private_ssh_key. ensure that key is base64 encoded')
+            set_flag('duplicity.invalid_private_ssh_key')
+            return
+        with open(PRIVATE_SSH_KEY_PATH, 'w') as f:
             f.write(decoded_private_key)
         hookenv.log('Updated private ssh key file.')
+    else:
+        if os.path.exists(PRIVATE_SSH_KEY_PATH):
+            os.remove(PRIVATE_SSH_KEY_PATH)
+    clear_flag('duplicity.invalid_private_ssh_key')
 
 
 @hook()

@@ -66,10 +66,9 @@ options:
     type: string
     default: "manual"
     description: |
-      Sets the crontab backup frequency to one of the following values:
+      Sets the crontab backup frequency to a valid cron string or one of the following:
       hourly|daily|weekly|monthly|manual
-      When set to auto, the cron will only backup the files if they have
-      changed.
+      If set to manual, crontab backup will not run.
   disable_encryption:
     type: boolean
     default: False
