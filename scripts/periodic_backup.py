@@ -1,32 +1,41 @@
-import os
+#!/usr/local/sbin/charm-env python3
+
 import sys
-import time
+import subprocess
 
-dir_path = os.path.dirname(os.path.realpath(__file__))
-hooks_path = os.path.abspath(os.path.join(dir_path, "..", "hooks"))
-root_path = os.path.abspath(os.path.join(dir_path, ".."))
+sys.path.append('lib')
 
-for p in [hooks_path, root_path]:
-    if p not in sys.path:
-        sys.path.append(p)
+from charmhelpers.core import hookenv
+from charms.reactive import set_flag, clear_flag
 
-# now we can import charm related items
-import charmhelpers.core.hookenv
 from lib import lib_duplicity
 
 
-def cli_log(msg, level=charmhelpers.core.hookenv.INFO):
-    """Helper function to write log message to stdout/stderr for CLI usage."""
-    if level == charmhelpers.core.hookenv.DEBUG:
-        return charmhelpers.core.hookenv.log(msg, level=level)
-    elif level in [charmhelpers.core.hookenv.ERROR,
-                   charmhelpers.core.hookenv.WARNING]:
-        output = sys.stderr
-    else:
-        output = sys.stdout
+error_workload_status = 'Periodic backup failed. Check unit logs for information.'
 
-    print('{}: {}'.format(time.ctime(), msg), file=output)
+
+def main():
+    try:
+        hookenv.log('Performing backup.')
+        output = lib_duplicity.DuplicityHelper().do_backup()
+        hookenv.log('Periodic backup complete with following output:\n{}'.format(output.decode('utf-8')))
+    except subprocess.CalledProcessError as e:
+        err_msg = 'Perioid backup failed. Command "{}" failed with return code "{}" and error output:\n{}'.format(
+            e.cmd, e.returncode, e.output.decode('utf-8'))
+        hookenv.log(err_msg, level=hookenv.ERROR)
+        hookenv.status_set('error', error_workload_status)
+        set_flag('duplicity.failed_periodic_backup')
+    except Exception as e:
+        hookenv.log('Periodic backup failed: {}'.format(str(e)), level=hookenv.ERROR)
+        hookenv.status_set('error', error_workload_status)
+        set_flag('duplicity.failed_periodic_backup')
+    else:
+        clear_flag('duplicity.failed_periodic_backup')
 
 
 if __name__ == "__main__":
-    helper = lib_duplicity.DuplicityHelper().do_backup()
+    status, _ = hookenv.status_get()
+    if status != 'active':
+        hookenv.log('Duplicity unit must be in ready state to execute do-backup command.', level=hookenv.WARNING)
+        sys.exit()
+    main()
