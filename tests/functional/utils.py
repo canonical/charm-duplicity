@@ -33,6 +33,15 @@ def config_restore(*applications):
     return config_restore_wrap
 
 
+def set_config_and_wait(application_name, config, model_name=None):
+    zaza.model.set_application_config(
+        application_name=application_name,
+        configuration=config,
+        model_name=model_name
+    )
+    zaza.model.block_until_all_units_idle()
+
+
 def _convert_config(config):
     """
     Converts config dictionary from get_config to one valid for set_config.
