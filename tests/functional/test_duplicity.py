@@ -135,6 +135,7 @@ class DuplicityBackupCommandTest(BaseDuplicityTest):
         cls.remote_user = user_pass_pair[0]
         cls.remote_pass = user_pass_pair[1]
         cls.action = 'do-backup'
+        cls.ssh_priv_key = cls.get_ssh_priv_key()
 
     def get_config(self, **kwargs):
         base_config = dict(
@@ -158,53 +159,53 @@ class DuplicityBackupCommandTest(BaseDuplicityTest):
     def test_scp_full_do_backup_action(self):
         additional_config = dict(backend='scp', full_backup='True')
         new_config = self.get_config(**additional_config)
-        zaza.model.set_application_config(self.application_name, new_config)
+        utils.set_config_and_wait(self.application_name, new_config)
         zaza.model.run_action(self.duplicity_unit.name, self.action, raise_on_failure=True)
 
     @utils.config_restore('duplicity')
     def test_rsync_full_do_backup_action(self):
         additional_config = dict(backend='scp', full_backup='True')
         new_config = self.get_config(**additional_config)
-        zaza.model.set_application_config(self.application_name, new_config)
+        utils.set_config_and_wait(self.application_name, new_config)
         zaza.model.run_action(self.duplicity_unit.name, self.action, raise_on_failure=True)
 
     @utils.config_restore('duplicity')
     def test_file_full_do_backup_action(self):
         additional_config = dict(backend='file', full_backup='True', remote_backup_url='/home/ubuntu/test-backups')
         new_config = self.get_config(**additional_config)
-        zaza.model.set_application_config(self.application_name, new_config)
+        utils.set_config_and_wait(self.application_name, new_config)
         zaza.model.run_action(self.duplicity_unit.name, self.action, raise_on_failure=True)
 
     @utils.config_restore('duplicity')
     def test_scp_full_ssh_key_auth_backup_action(self):
         additional_config = dict(backend='scp',
                                  full_backup='True',
-                                 private_ssh_key=self.get_ssh_priv_key(),
+                                 private_ssh_key=self.ssh_priv_key,
                                  remote_password='')
         new_config = self.get_config(**additional_config)
-        zaza.model.set_application_config(self.application_name, new_config)
+        utils.set_config_and_wait(self.application_name, new_config)
         zaza.model.run_action(self.duplicity_unit.name, self.action, raise_on_failure=True)
 
     @utils.config_restore('duplicity')
     def test_sftp_full_do_backup(self):
         additional_config = dict(backend='sftp', full_backup='True')
         new_config = self.get_config(**additional_config)
-        zaza.model.set_application_config(self.application_name, new_config)
+        utils.set_config_and_wait(self.application_name, new_config)
         zaza.model.run_action(self.duplicity_unit.name, self.action, raise_on_failure=True)
 
     @utils.config_restore('duplicity')
     def test_sftp_full_ssh_key_do_backup(self):
         additional_config = dict(backend='sftp',
                                  full_backup='True',
-                                 private_ssh_key=self.get_ssh_priv_key(),
+                                 private_ssh_key=self.ssh_priv_key,
                                  remote_password='')
         new_config = self.get_config(**additional_config)
-        zaza.model.set_application_config(self.application_name, new_config)
+        utils.set_config_and_wait(self.application_name, new_config)
         zaza.model.run_action(self.duplicity_unit.name, self.action, raise_on_failure=True)
 
     @utils.config_restore('duplicity')
     def test_ftp_full_do_backup(self):
         additional_config = dict(backend='ftp', full_backup='True')
         new_config = self.get_config(**additional_config)
-        zaza.model.set_application_config(self.application_name, new_config)
+        utils.set_config_and_wait(self.application_name, new_config)
         zaza.model.run_action(self.duplicity_unit.name, self.action, raise_on_failure=True)
