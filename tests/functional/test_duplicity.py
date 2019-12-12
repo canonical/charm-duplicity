@@ -52,6 +52,37 @@ class DuplicityBackupCronTest(BaseDuplicityTest):
                     'Cron file /etc/cron.d/period_backup never populated with option <{}>'.format(option))
 
     @utils.config_restore('duplicity')
+    def test_cron_creation_cron_string(self):
+        cron_string = '* * * * *'
+        new_config = dict(backup_frequency=cron_string)
+        zaza.model.set_application_config(self.application_name, new_config)
+        try:
+            zaza.model.block_until_file_has_contents(
+                application_name=self.application_name,
+                remote_file='/etc/cron.d/periodic_backup',
+                expected_contents=cron_string,
+                timeout=60
+            )
+        except concurrent.futures._base.TimeoutError:
+            self.fail(
+                'Cron file /etc/cron.d/period_backup never populated with option <{}>'.format(cron_string))
+
+    @utils.config_restore('duplicity')
+    def test_cron_invalid_cron_string(self):
+        cron_string = '* * * *'
+        new_config = dict(backup_frequency=cron_string)
+        zaza.model.set_application_config(self.application_name, new_config)
+        try:
+            duplicity_workload_checker = utils.get_workload_application_status_checker(
+                self.application_name, 'blocked')
+            _run(zaza.model.async_block_until(duplicity_workload_checker, timeout=15))
+            a_unit = zaza.model.get_units(self.application_name)[0]
+            self.assertEquals(a_unit.workload_status_message,
+                              'Invalid value "{}" for cron frequency'.format(cron_string))
+        except concurrent.futures._base.TimeoutError:
+            self.fail('Failed to enter blocked state with invalid backup_frequency.')
+
+    @utils.config_restore('duplicity')
     def test_no_cron(self):
         options = ['auto', 'manual']
         for option in options:
