@@ -24,7 +24,9 @@ class DuplicityHelper():
         cmd = ['duplicity']
         if self.charm_config.get('private_ssh_key'):
             cmd.append('--ssh-options=-oIdentityFile=/root/.ssh/duplicity_id_rsa')
-        cmd.append('full' if self.charm_config.get('full_backup') else 'incr')
+        # later switch to cmd.append('full' if self.charm_config.get('full_backup') else 'incr')
+        # when full_backup implemented
+        cmd.append('full')
         cmd.extend([self.charm_config.get('aux_backup_directory'), self._backup_url()])
         cmd.extend(self._additional_options())
         return cmd
