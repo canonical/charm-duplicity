@@ -7,6 +7,7 @@ from subprocess import CalledProcessError
 sys.path.append('lib')
 
 from charmhelpers.core import hookenv
+from charms.reactive import clear_flag
 
 from lib.lib_duplicity import DuplicityHelper
 
@@ -15,10 +16,7 @@ helper = DuplicityHelper()
 
 
 def do_backup(*args):
-    status, _ = hookenv.status_get()
-    if status != 'active':
-        hookenv.function_fail('Duplicity unit must be in ready state to execute do-backup command.')
-        return
+    # TODO: Implement checking to see if application is active.
     output = helper.do_backup(logger=hookenv.log)
     hookenv.function_set(dict(output=output.decode('utf-8')))
 
@@ -42,6 +40,8 @@ def main(args):
         hookenv.function_fail(err_msg)
     except Exception as e:
         hookenv.function_fail(str(e))
+    else:
+        clear_flag('duplicity.failed_periodic_backup')
 
 
 if __name__ == '__main__':

@@ -104,23 +104,19 @@ class DuplicityHelper():
         Sets up the backup cron to run on the unit. Renders the cron and ensures logging
         directory exists.
         """
-        self._setup_cron_logging_directory()
-        self._render_backup_cron()
-
-    @staticmethod
-    def _setup_cron_logging_directory():
-        """
-        Ensures cron logging directory is created.
-        """
         if not os.path.exists(BACKUP_CRON_LOG_PATH):
             os.mkdir(BACKUP_CRON_LOG_PATH)
+        self._render_backup_cron()
 
     def _render_backup_cron(self):
         """
         Render backup cron.
         """
+        backup_frequency = self.charm_config.get('backup_frequency')
+        if backup_frequency in ['hourly', 'daily', 'weekly', 'monthly']:
+            backup_frequency = '@{}'.format(backup_frequency)
         cron_ctx = dict(
-            frequency=self.charm_config.get('backup_frequency'),
+            frequency=backup_frequency,
             unit_name=hookenv.local_unit(),
             charm_dir=hookenv.charm_dir()
         )
@@ -135,7 +131,7 @@ class DuplicityHelper():
             if known_host_key not in known_host_file.read():
                 print(known_host_key, file=known_host_file)
 
-    def do_backup(self, logger=hookenv.log, **kwargs):
+    def do_backup(self, **kwargs):
         """ Execute the backup call to duplicity as configured by the charm
 
         :param: kwargs
@@ -144,7 +140,7 @@ class DuplicityHelper():
         self._set_environment_vars()
         cmd = self.backup_cmd
         # TODO: Clean password from command!!!
-        logger("Duplicity Command: {}".format(cmd))
+        hookenv.log("Duplicity Command: {}".format(cmd))
         return subprocess.check_output(cmd, stderr=subprocess.STDOUT)
 
     def cleanup(self):
