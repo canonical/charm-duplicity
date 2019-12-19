@@ -19,9 +19,10 @@ import croniter
 
 from lib_duplicity import DuplicityHelper, safe_remove_backup_cron
 
-helper = DuplicityHelper()
 PRIVATE_SSH_KEY_PATH = '/root/.ssh/duplicity_id_rsa'
 PLUGINS_DIR = '/usr/local/lib/nagios/plugins/'
+
+helper = DuplicityHelper()
 
 
 @when_not('duplicity.installed')
