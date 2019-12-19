@@ -4,12 +4,13 @@ exclude:
   - layers
 # include required layers here
 includes:
-  - layer:basic
-  - layer:options
   - layer:apt
+  - layer:nagios
+  - interface:juju-info
 options:
   basic:
     python_packages:
       - croniter
+      - pidfile
     use_venv: True
     include_system_packages: true

@@ -16,16 +16,12 @@ subordinate: true
 series:
   - bionic
   - xenial
-  - disco
-  - eoan
 provides:
-  backup-host:
-    interface: backup-host-data
+  nrpe-external-master:
+    interface: nrpe-external-master
+    scope: container
+    optional: true
 requires:
   general-info:
     interface: juju-info
     scope: container
-
-# peers:
-#   peer-relation:
-#     interface: interface-name
