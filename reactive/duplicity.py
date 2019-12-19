@@ -224,7 +224,7 @@ def render_checks():
     nrpe = NRPE()
     unit_name = hookenv.local_unit()
     nrpe.add_check(
-        check_cmd=' '.join(['/usr/bin/juju-run', unit_name, os.path.join(PLUGINS_DIR, 'check_backup_status.py')]),
+        check_cmd=os.path.join(PLUGINS_DIR, 'check_backup_status.py'),
         shortname='backups',
         description='Check that periodic backups have not failed.'
     )
