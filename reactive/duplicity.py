@@ -9,17 +9,19 @@ See the following for information about reactive charms:
   * https://github.com/juju-solutions/layer-basic#overview
 """
 import base64
+import os
 
-from lib_duplicity import DuplicityHelper, safe_remove_backup_cron
-from charmhelpers.core import hookenv
-from charms.reactive import set_flag, clear_flag, when_not, when, hook, when_any, when_all
+from charmhelpers.core import hookenv, host
+from charmhelpers.contrib.charmsupport.nrpe import NRPE
 from charmhelpers import fetch
+from charms.reactive import set_flag, clear_flag, when_not, when, hook, when_any, when_all
 import croniter
 
-import os
+from lib_duplicity import DuplicityHelper, safe_remove_backup_cron
 
 helper = DuplicityHelper()
 PRIVATE_SSH_KEY_PATH = '/root/.ssh/duplicity_id_rsa'
+PLUGINS_DIR = '/usr/local/lib/nagios/plugins/'
 
 
 @when_not('duplicity.installed')
@@ -45,7 +47,9 @@ def install_duplicity():
           'config.changed.aws_access_key_id',
           'config.changed.aws_secret_access_key'
           'config.changed.remote_backup_url',
-          'config.changed.known_host_key')
+          'config.changed.known_host_key',
+          'config.changed.remote_password',
+          'config.changed.private_ssh_key')
 def validate_backend():
     """
     Validates that the config value for 'backend' is something that duplicity
@@ -143,8 +147,7 @@ passphrase, GPG public key, or disable encryption')
 @when_all('duplicity.valid_encryption_method',
           'duplicity.valid_backend',
           'duplicity.valid_backup_frequency')
-@when_not('duplicity.invalid_private_ssh_key',
-          'duplicity.failed_periodic_backup')
+@when_not('duplicity.invalid_private_ssh_key')
 def app_ready():
     hookenv.status_set('active', 'Ready')
 
@@ -200,6 +203,42 @@ def update_private_ssh_key():
         if os.path.exists(PRIVATE_SSH_KEY_PATH):
             os.remove(PRIVATE_SSH_KEY_PATH)
     clear_flag('duplicity.invalid_private_ssh_key')
+
+
+@when('nrpe-external-master.available')
+@when_not('nrpe-external-master.initial-config')
+def initial_nrpe_config():
+    set_flag('nrpe-external-master.initial-config')
+    render_checks()
+
+
+@when('nrpe-external-master.initial-config')
+@when_any('config.changed.nagios_context',
+          'config.changed.nagios_servicegroups')
+def render_checks():
+    hookenv.log('Creating NRPE checks.')
+    charm_plugin_dir = os.path.join(hookenv.charm_dir(), 'scripts', 'plugins/')
+    if not os.path.exists(PLUGINS_DIR):
+        os.makedirs(PLUGINS_DIR)
+    host.rsync(charm_plugin_dir, PLUGINS_DIR)
+    nrpe = NRPE()
+    unit_name = hookenv.local_unit()
+    nrpe.add_check(
+        check_cmd=' '.join(['/usr/bin/juju-run', unit_name, os.path.join(PLUGINS_DIR, 'check_backup_status.py')]),
+        shortname='backups',
+        description='Check that periodic backups have not failed.'
+    )
+    nrpe.write()
+    set_flag('nrpe-external-master.configured')
+    hookenv.log('NRPE checks created.')
+
+
+@when('nrpe-external-master.configured')
+@when_not('nrpe-external-master.available')
+def remove_nrpe_checks():
+    nrpe = NRPE()
+    nrpe.remove_check(shortname='backups')
+    clear_flag('nrpe-external-master.configured')
 
 
 @hook()

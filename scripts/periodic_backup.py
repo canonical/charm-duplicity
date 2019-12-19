@@ -1,17 +1,24 @@
 #!/usr/local/sbin/charm-env python3
-
 import sys
 import subprocess
+import os
 
 sys.path.append('lib')
 
 from charmhelpers.core import hookenv
-from charms.reactive import set_flag, clear_flag
+from charms.reactive import clear_flag
+from pidfile import PidFile
 
 from lib import lib_duplicity
 
 
-error_workload_status = 'Periodic backup failed. Check unit logs for information.'
+pidfile = '/var/run/periodic_backup.pid'
+error_file = '/var/run/periodic_backup.error'
+
+
+def write_error_file(message):
+    with open(error_file, 'w') as f:
+        f.write(message)
 
 
 def main():
@@ -23,19 +30,21 @@ def main():
         err_msg = 'Periodic backup failed. Command "{}" failed with return code "{}" and error output:\n{}'.format(
             e.cmd, e.returncode, e.output.decode('utf-8'))
         hookenv.log(err_msg, level=hookenv.ERROR)
-        hookenv.status_set('error', error_workload_status)
-        set_flag('duplicity.failed_periodic_backup')
+        write_error_file(err_msg)
     except Exception as e:
-        hookenv.log('Periodic backup failed: {}'.format(str(e)), level=hookenv.ERROR)
-        hookenv.status_set('error', error_workload_status)
-        set_flag('duplicity.failed_periodic_backup')
+        err_msg = 'Periodic backup failed: {}'.format(str(e))
+        hookenv.log(err_msg, level=hookenv.ERROR)
+        write_error_file(err_msg)
     else:
-        clear_flag('duplicity.failed_periodic_backup')
+        clear_flag('duplicity.failed_backup')
+        if os.path.exists(error_file):
+            os.remove(error_file)
 
 
 if __name__ == "__main__":
-    status, _ = hookenv.status_get()
+    status, workload_msg = hookenv.status_get()
     if status != 'active':
-        hookenv.log('Duplicity unit must be in ready state to execute do-backup command.', level=hookenv.WARNING)
+        hookenv.log('Duplicity unit must be in ready state to execute backup command.', level=hookenv.WARNING)
         sys.exit()
-    main()
+    with PidFile(pidfile):
+        main()
