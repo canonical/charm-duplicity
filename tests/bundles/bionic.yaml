@@ -9,6 +9,9 @@ applications:
     charm: cs:ubuntu
     num_units: 1
 
+  nrpe:
+    charm: cs:nrpe
+
   duplicity:
     charm: /tmp/charm-builds/duplicity
     options:
@@ -19,3 +22,7 @@ applications:
 relations:
   - - ubuntu
     - duplicity
+  - - nrpe
+    - duplicity
+  - - nrpe
+    - ubuntu

@@ -13,6 +13,7 @@ from lib.lib_duplicity import DuplicityHelper
 
 
 helper = DuplicityHelper()
+error_file = '/var/run/periodic_backup.error'
 
 
 def do_backup(*args):
@@ -41,7 +42,9 @@ def main(args):
     except Exception as e:
         hookenv.function_fail(str(e))
     else:
-        clear_flag('duplicity.failed_periodic_backup')
+        clear_flag('duplicity.failed_backup')
+        if os.path.exists(error_file):
+            os.remove(error_file)
 
 
 if __name__ == '__main__':
