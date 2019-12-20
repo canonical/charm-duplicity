@@ -1,48 +1,108 @@
-# Overview
-This is a template for writing charms with unit and functional testing included
-from the start. It is meant to provide a quick start to creating a charm and
-encourage testing from the beginning.
+# Duplicity - Contributing
 
-The template comes out of the box with a build script that will build the charm.
-There are empty folders for interfaces, layers, and the charm source. Interfaces
-and Layers are pulled from upstream but this template recommends adding subrepos
-in the appropriate folder to the charm to allow tracking of versions for
-interfaces and layers. If an interface or layers is present in the folder it
-will be used instead of the upstream.
+This is a quick guide to help developers start contributing to the Duplicity charm project.
 
-To build simply run the Makefile target
-```bash
+## Getting Started
+
+This section will help with setting up the development and testing environment for this charm.
+
+### Prerequisites
+
+What you'll need is:
+
+- charm-tools
+- tox
+- python3
+- juju
+
+To download:
+
+```
+sudo snap install charm --classic
+sudo snap install juju --classic
+
+pip install tox
+```
+
+### Dev Setup
+
+Here's some quick commands to help you get started developing:
+
+```
+# Clone the repo
+git clone git+ssh://git.launchpad.net/charm-duplicity
+
+# Get virtual environment. Then you can set this as your project interpreter (helpful with PyCharm)
+tox -e func-noop
+source .tox/func-noop/bin/activate
+```
+
+### Building the charm
+
+You can build the charm through different methods:
+
+```
+# Build using make command
 make build
+
+# Build using charm tools command
+charm build
 ```
 
-Testing is done via tox and there are two environments setup, one for unit and
-one for functional testing. Each has a separate requirements file to setup the
-virtualenv that they will be run in. These requirements are only needed for
-running the tests.
+You can set various environment variables (e.g. JUJU_REPOSITORY, CHARM_BUILD_DIR) to build into 
+your desired directory. By default, the project will build into /tmp/charm-builds/duplicity. 
 
-Unit testing is performed via pytest. Tests are defined in
-/tests/unit/test_XXX.py
+## Running Tests
 
-To run unit test with tox run:
-```bash
+The following section will review running automated tests in the project.
+
+### Unit Tests
+
+Unit tests utilize the [pytest framework](https://docs.pytest.org/en/latest/).
+
+TODO: Unit tests still need to be implemented fully. However, running them is simple. You can use the make 
+command or call pytest directly:
+
+```
 make unittest
+
+# or
+
+pytest
+
+``` 
+
+### Functional Tests
+
+This project uses [zaza](https://zaza.readthedocs.io/en/latest/addingcharmtests.html) for it's functional
+test framework. This provides a solid structure for testing as well as the `functest` tool for granular
+control over the functional test lifecycle.
+
+**Note**: the bundles zaza uses grab the local charm from the default `/tmp/charm-builds/duplicity`
+directory. You can change this in the bundle, however please refrain from pushing said change as this will
+move away from the default.
+
+You can run the full test suite using make (will also build the charm before running):
+
 ```
-
-Out of the gate, unit testing just verifies that the testing framework is
-working. It is recommend that the library file in the lib folder be fully unit
-tested.
-
-
-The currently supported method of functional testing uses libjuju to interact
-with juju and the units.
-
-To run libjuju functional testing:
-```bash
 make functional
-```
-This requires a controller; a temporary model will be created and torn down at
-the beginning and end of the testing session, respectively. A custom
-module-scoped event loop is provided as to support fixtures with scopes beyond
-'function'.
 
-Several generic fixtures are provided in conftest.py, and reuse is encouraged.
+# use tox to skip the build step
+tox -e functional
+```
+
+You can also use `functest` to run the suite in chunks, separating the preparation, deployment, configuration, and
+allowing singular test class to be run. You can find more information regarding these functions in the zaza docs
+[here](https://zaza.readthedocs.io/en/latest/runningcharmtests.html).
+
+### Code Style lint
+
+This project uses various linting techniques and tools. To run against the code run the following:
+
+```
+make lint
+```
+
+## Authors
+
+[Llama (LMA) Charmers](https://launchpad.net/~llama-charmers)
