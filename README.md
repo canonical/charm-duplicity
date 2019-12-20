@@ -1,4 +1,6 @@
-# Overview
+# Duplicity Charm
+
+## Overview
 
 The Duplicity charm provides functionality for both manual and automatic backups for a deployed application.
 As the name suggests, it utilizes the Duplicity tool and acts as an easy-to-use-and-configure interface for 
