@@ -28,9 +28,12 @@ juju deploy duplicity
 juju add-relation duplicity ubuntu
 ```
 
-However, we will need to fill out 
+However, we will need to fill out various other, required configs, depending on the backend type selected.
 
 ### Local file backups
+
+This will backup a selected directory to the local unit.
+
 ```
 juju config duplicity \
     backend=file \
@@ -39,6 +42,8 @@ juju config duplicity \
 ```
 
 ### SCP/Rsync/SFTP Backups
+
+Using the backends scp, rsync, and sftp require, at minimum, the following options to be set.
 
 ```
 juju config duplicity \
@@ -52,6 +57,10 @@ Alternatively, you can use `remote_password=password` instead of the `private_ss
 password authentication.
 
 ### S3 Backups
+
+The following will backup to S3 buckets. This configuration requires an IAM account 
+access and secret key to be passed into the config.
+
 ```
 juju config duplicity \
     backend=s3 \
@@ -60,13 +69,60 @@ juju config duplicity \
     aws_secret_access_key=my_aws_secret
 ```
 
+### Encryption
+
+To encrypt your backups, you can use symmetric encryption using a passed in password or
+encrypt the backup with a GPG key. Alternative to these methods, you can ignore encryption
+entirely.
+
+```
+# Symmetric password encryption
+juju config duplicity encryption_passphrase=my_passphrase
+
+# Asymmetric GPG encryption
+juju config duplicity gpg_public_key=MY_GPG_KEY
+
+# Disable encryption (not recommended)
+juju config duplicity disable_encryption=True
+```
+
+### Setting Periodic Backups
+
+The big draw of this charm is being able to periodically backup a directory. By default,
+the charm will only backup manually, i.e. through the `do-backup` action. To enable
+periodic backups, set `backup_frequency` to any of the following:
+
+- hourly
+- daily
+- weekly
+- monthly
+- any valid cron schedule string
+
 ### Adding NRPE Checks for alerting
+
+Adding NRPE checks allows for alerting when a periodic backup fails to complete.
+
 ```bash
 juju deploy nrpe
 juju add-relation nrpe ubuntu       # required on host 
 juju add-relation nrpe duplicity
 ```
 
-# Bugs
+# Known Limitations and Future Features
+
+This charm is currently still under development. The only supported Duplicity action right now
+is full backups (through both an action and periodic backups). The following is the list
+of future Duplicity functionality:
+
+- incremental backups
+- restoring backups
+- verifying backups
+- listing  backed-up files
+- cleaning up backed files
+- additional supported backends
+
+# Upstream and Bugs
+
+The repository can be found [here](https://git.launchpad.net/charm-duplicity).
 
 Please report bugs or feature requests on [Launchpad](https://bugs.launchpad.net/charm-duplicity).
