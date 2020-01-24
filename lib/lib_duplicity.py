@@ -6,6 +6,7 @@ from charmhelpers.core import hookenv, templating
 
 BACKUP_CRON_FILE = '/etc/cron.d/periodic_backup'
 BACKUP_CRON_LOG_PATH = '/var/log/duplicity'
+ROOT_KNOWN_HOSTS_PATH = '/root/.ssh/known_hosts'
 
 
 def safe_remove_backup_cron():
@@ -96,9 +97,9 @@ class DuplicityHelper():
 
         if self.charm_config.get("disable_encryption"):
             cmd.append("--no-encryption")
-        elif self.charm_config.config.get("gpg_public_key"):
+        elif self.charm_config.get("gpg_public_key"):
             cmd.append("--gpg-key={}".format(
-                self.charm_config.config.get("gpg_public_key")))
+                self.charm_config.get("gpg_public_key")))
         return cmd
 
     def setup_backup_cron(self):
@@ -128,8 +129,8 @@ class DuplicityHelper():
 
     @staticmethod
     def update_known_host_file(known_host_key):
-        permissions = 'a+' if os.path.exists('root_known_host_path') else 'w+'
-        with open('/root/.ssh/known_hosts', permissions) as known_host_file:
+        permissions = 'a+' if os.path.exists(ROOT_KNOWN_HOSTS_PATH) else 'w+'
+        with open(ROOT_KNOWN_HOSTS_PATH, permissions) as known_host_file:
             if known_host_key not in known_host_file.read():
                 print(known_host_key, file=known_host_file)
 

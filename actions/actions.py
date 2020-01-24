@@ -9,7 +9,7 @@ sys.path.append('lib')
 from charmhelpers.core import hookenv
 from charms.reactive import clear_flag
 
-from lib.lib_duplicity import DuplicityHelper
+from lib_duplicity import DuplicityHelper
 
 
 helper = DuplicityHelper()
@@ -17,8 +17,7 @@ error_file = '/var/run/periodic_backup.error'
 
 
 def do_backup(*args):
-    # TODO: Implement checking to see if application is active.
-    output = helper.do_backup(logger=hookenv.log)
+    output = helper.do_backup()
     hookenv.function_set(dict(output=output.decode('utf-8')))
 
 
@@ -30,7 +29,7 @@ ACTIONS = {
 def main(args):
     action_name = os.path.basename(args[0])
     action = ACTIONS.get(action_name)
-    if not action_name:
+    if not action:
         return 'Action "{}" is undefined'.format(action_name)
     try:
         action(args)
