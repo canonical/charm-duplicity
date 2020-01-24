@@ -9,6 +9,7 @@ See the following for information about reactive charms:
   * https://github.com/juju-solutions/layer-basic#overview
 """
 import base64
+import binascii
 import os
 
 from charmhelpers.core import hookenv, host
@@ -58,14 +59,14 @@ def validate_backend():
     only, check that the AWS IMA credentials are also set.
     """
     backend = hookenv.config().get("backend").lower()
-    if backend not in ["s3", "ssh", "scp", "sftp", "ftp", "rsync", "file"]:
+    if backend not in ["s3", "scp", "sftp", "ftp", "rsync", "file"]:
         hookenv.status_set('blocked',
                            'Unrecognized backend "{}"'.format(backend))
         clear_flag('duplicity.valid_backend')
         return
     elif backend == "s3":
         # make sure 'aws_access_key_id' and 'aws_secret_access_key' exist
-        if not hookenv.config().get("aws_access_key_id") and \
+        if not hookenv.config().get("aws_access_key_id") or \
                 not hookenv.config().get("aws_secret_access_key"):
             hookenv.status_set('blocked', 'S3 backups require \
 "aws_access_key_id" and "aws_secret_access_key" to be set')
@@ -163,7 +164,7 @@ def create_backup_cron():
     """
     hookenv.status_set('active', 'Rendering duplicity crontab')
     helper.setup_backup_cron()
-    hookenv.status_set('active', 'Ready.')
+    hookenv.status_set('active', 'Ready')
     clear_flag('duplicity.create_backup_cron')
 
 
@@ -185,13 +186,12 @@ def update_private_ssh_key():
     private_key = hookenv.config().get('private_ssh_key')
     if private_key:
         hookenv.log('Updating private ssh key file.')
-        encoded_private_key = hookenv.config().get('private_ssh_key')
         try:
-            decoded_private_key = base64.b64decode(encoded_private_key).decode('utf-8')
-        except UnicodeDecodeError as e:
+            decoded_private_key = base64.b64decode(private_key).decode('utf-8')
+        except (UnicodeDecodeError, binascii.Error) as e:
             hookenv.log(
                 'Failed to decode private key {} to utf-8 with error: {}.\nNot creating ssh key file'.format(
-                    encoded_private_key, e),
+                    private_key, e),
                 level=hookenv.ERROR)
             hookenv.status_set(workload_state='blocked',
                                message='invalid private_ssh_key. ensure that key is base64 encoded')
@@ -223,7 +223,6 @@ def render_checks():
         os.makedirs(PLUGINS_DIR)
     host.rsync(charm_plugin_dir, PLUGINS_DIR)
     nrpe = NRPE()
-    unit_name = hookenv.local_unit()
     nrpe.add_check(
         check_cmd=os.path.join(PLUGINS_DIR, 'check_backup_status.py'),
         shortname='backups',
