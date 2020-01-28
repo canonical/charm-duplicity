@@ -52,7 +52,7 @@ juju config duplicity \
     backend=scp \
     remote_backup_url=my.host:22/my_backups
     known_host_key='my.host,10.10.10.2 ssh-rsa AAABBBCCC' \
-    private_ssh_key=$(base64 my_priv_id)
+    private_ssh_key="$(base64 my_priv_id)"
 ```
 
 Alternatively, you can use `remote_password=password` instead of the `private_ssh_key` option if you prefer
