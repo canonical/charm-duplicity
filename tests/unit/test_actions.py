@@ -38,7 +38,7 @@ class TestActions:
                 CalledProcessError(returncode=2, output='my-error-output'.encode('utf-8'), cmd='cmd'),
                 ['2', 'my-error-output']
         ),
-         (Exception('generic exception'), ['generic exception'])
+        (Exception('generic exception'), ['generic exception'])
     ])
     @patch('actions.hookenv')
     @patch('actions.do_backup')
