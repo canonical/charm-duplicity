@@ -83,7 +83,6 @@ class TestValidateBackend:
         side_effects = ['scp', 'some_host', remote_pass, ssh_key, remote_backup_url]
         mock_hookenv.config.return_value.get.side_effect = side_effects
         duplicity.validate_backend()
-        print(mock_hookenv.status_set.call_args)
         mock_helper.update_known_host_file.assert_called()
         mock_hookenv.status_set.assert_called_with('blocked', ANY)
         mock_clear_flag.assert_called_with('duplicity.valid_backend')
