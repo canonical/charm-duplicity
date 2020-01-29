@@ -131,7 +131,8 @@ class DuplicityHelper():
     def update_known_host_file(known_host_key):
         permissions = 'a+' if os.path.exists(ROOT_KNOWN_HOSTS_PATH) else 'w+'
         with open(ROOT_KNOWN_HOSTS_PATH, permissions) as known_host_file:
-            if known_host_key not in known_host_file.read():
+            contents = known_host_file.read()
+            if known_host_key not in contents:
                 print(known_host_key, file=known_host_file)
 
     def do_backup(self, **kwargs):
