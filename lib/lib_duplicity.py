@@ -143,8 +143,7 @@ class DuplicityHelper():
         """
         self._set_environment_vars()
         cmd = self.backup_cmd
-        # TODO: Clean password from command!!!
-        hookenv.log("Duplicity Command: {}".format(cmd))
+        hookenv.log("Duplicity Command: {}".format(cmd).replace(self.charm_config.get('remote_password'), '*****'))
         return subprocess.check_output(cmd, stderr=subprocess.STDOUT)
 
     def cleanup(self):
