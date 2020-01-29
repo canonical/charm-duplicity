@@ -78,7 +78,7 @@ class DuplicityBackupCronTest(BaseDuplicityTest):
             _run(zaza.model.async_block_until(duplicity_workload_checker, timeout=15))
             a_unit = zaza.model.get_units(self.application_name)[0]
             self.assertEquals(a_unit.workload_status_message,
-                              'Invalid value "{}" for cron frequency'.format(cron_string))
+                              'Invalid value "{}" for "backup_frequency"'.format(cron_string))
         except concurrent.futures._base.TimeoutError:
             self.fail('Failed to enter blocked state with invalid backup_frequency.')
 
