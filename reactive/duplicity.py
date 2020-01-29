@@ -15,7 +15,7 @@ import os
 from charmhelpers.core import hookenv, host
 from charmhelpers.contrib.charmsupport.nrpe import NRPE
 from charmhelpers import fetch
-from charms.reactive import set_flag, clear_flag, when_not, when, hook, when_any, when_all, is_flag_set
+from charms.reactive import set_flag, clear_flag, when_not, when, hook, when_any, is_flag_set
 import croniter
 
 from lib_duplicity import DuplicityHelper, safe_remove_backup_cron
@@ -146,14 +146,14 @@ def validate_encryption_method():
 
 @when('duplicity.installed')
 def check_status():
-    hookenv.atexit(_assess_status)
+    hookenv.atexit(assess_status)
 
 
-def _assess_status():
+def assess_status():
     if is_flag_set('duplicity.invalid_remote_backup_url'):
         hookenv.status_set(
             workload_state='blocked',
-             message='Backup path is required. Set config for "remote_backup_url"'
+            message='Backup path is required. Set config for "remote_backup_url"'
         )
         return
     if is_flag_set('duplicity.invalid_backend'):
@@ -171,8 +171,8 @@ def _assess_status():
     if is_flag_set('duplicity.invalid_secure_backend_opts'):
         hookenv.status_set(
             workload_state='blocked',
-            message='{} backend requires known_host_key and either "remote_password" or "private_ssh_key" to be set.'
-                .format(config.get('backend'))
+            message='{} backend requires known_host_key and either "remote_password" or '
+                    '"private_ssh_key" to be set'.format(config.get('backend'))
         )
         return
     if is_flag_set('duplicity.invalid_encryption_method'):
@@ -184,7 +184,7 @@ def _assess_status():
     if is_flag_set('duplicity.invalid_private_ssh_key'):
         hookenv.status_set(
             workload_state='blocked',
-            message='invalid private_ssh_key. ensure that key is base64 encoded'
+            message='Invalid private_ssh_key. ensure that key is base64 encoded'
         )
         return
     if is_flag_set('duplicity.invalid_backup_frequency'):
