@@ -40,7 +40,7 @@ def set_backup_host_known_host_key():
     backup_host_ip = _get_unit('backup-host').public_address
     command = ['ssh-keyscan', '-t', 'rsa', backup_host_ip]
     output = subprocess.check_output(command)
-    zaza.model.set_application_config('duplicity', dict(known_host_key=output.decode('utf-8')))
+    zaza.model.set_application_config('duplicity', dict(known_host_key=output.decode('utf-8').strip()))
 
 
 def add_pub_key_to_backup_host():
