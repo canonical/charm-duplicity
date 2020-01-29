@@ -15,7 +15,7 @@ import os
 from charmhelpers.core import hookenv, host
 from charmhelpers.contrib.charmsupport.nrpe import NRPE
 from charmhelpers import fetch
-from charms.reactive import set_flag, clear_flag, when_not, when, hook, when_any, when_all
+from charms.reactive import set_flag, clear_flag, when_not, when, hook, when_any, when_all, is_flag_set
 import croniter
 
 from lib_duplicity import DuplicityHelper, safe_remove_backup_cron
@@ -24,6 +24,7 @@ PRIVATE_SSH_KEY_PATH = '/root/.ssh/duplicity_id_rsa'
 PLUGINS_DIR = '/usr/local/lib/nagios/plugins/'
 
 helper = DuplicityHelper()
+config = hookenv.config()
 
 
 @when_not('duplicity.installed')
@@ -48,7 +49,6 @@ def install_duplicity():
 @when_any('config.changed.backend',
           'config.changed.aws_access_key_id',
           'config.changed.aws_secret_access_key'
-          'config.changed.remote_backup_url',
           'config.changed.known_host_key',
           'config.changed.remote_password',
           'config.changed.private_ssh_key')
@@ -58,57 +58,59 @@ def validate_backend():
     can use (see config description for backend for the accepted types). For S3
     only, check that the AWS IMA credentials are also set.
     """
-    backend = hookenv.config().get("backend").lower()
-    if backend not in ["s3", "scp", "sftp", "ftp", "rsync", "file"]:
-        hookenv.status_set('blocked',
-                           'Unrecognized backend "{}"'.format(backend))
-        clear_flag('duplicity.valid_backend')
+    backend = config.get("backend").lower()
+    if backend in ["s3", "scp", "sftp", "ftp", "rsync", "file"]:
+        clear_flag('duplicity.invalid_backend')
+    else:
+        set_flag('duplicity.invalid_backend')
         return
-    elif backend == "s3":
-        # make sure 'aws_access_key_id' and 'aws_secret_access_key' exist
-        if not hookenv.config().get("aws_access_key_id") or \
-                not hookenv.config().get("aws_secret_access_key"):
-            hookenv.status_set('blocked', 'S3 backups require \
-"aws_access_key_id" and "aws_secret_access_key" to be set')
-            clear_flag('duplicity.valid_backend')
-            return
-    if backend in ['scp', 'rsync', 'sftp']:
-        known_host_key = hookenv.config().get('known_host_key')
-        if not known_host_key:
-            hookenv.status_set('blocked', '{} backend requires known_host_key to be set.'.format(backend))
-            clear_flag('duplicity.valid_backend')
-            return
+    if backend == "s3":
+        if all([config.get("aws_access_key_id"), config.get("aws_secret_access_key")]):
+            clear_flag('duplicity.invalid_aws_creds')
         else:
-            helper.update_known_host_file(known_host_key)
-        if not hookenv.config().get('remote_password') and not hookenv.config().get('private_ssh_key'):
-            hookenv.status_set(
-                'blocked',
-                'Backend "{}" requires either remote_password or private_ssh_key to be set'.format(backend))
-            clear_flag('duplicity.valid_backend')
+            set_flag('duplicity.invalid_aws_creds')
             return
-    if not hookenv.config().get("remote_backup_url"):
-        # remote url is unset
-        hookenv.status_set('blocked', 'Backup path is required. Set config \
-for "remote_backup_url"')
-        clear_flag('duplicity.valid_backend')
-        return
-    set_flag('duplicity.valid_backend')
+    elif backend in ['scp', 'rsync', 'sftp']:
+        if config.get('known_host_key') and any([config.get('remote_password'), config.get('private_ssh_key')]):
+            clear_flag('duplicity.invalid_secure_backend_opts')
+        else:
+            set_flag('duplicity.invalid_secure_backend_opts')
+            return
+
+
+@when('config.changed.known_host_key')
+def update_known_host_key():
+    known_host_key = config.get('known_host_key')
+    if known_host_key:
+        hookenv.status_set(
+            workload_state='maintenance',
+            message='Updating known_host_key'
+        )
+        helper.update_known_host_file(known_host_key)
+
+
+@when('config.changed.remote_backup_url')
+def check_remote_backup_url():
+    if config.get('remote_backup_url'):
+        clear_flag('duplicity.invalid_backend')
+    else:
+        set_flag('duplicity.invalid_backend')
 
 
 @when('config.changed.aux_backup_directory')
 def create_aux_backup_directory():
-    aux_backup_dir = hookenv.config().get("aux_backup_directory")
+    aux_backup_dir = config.get("aux_backup_directory")
     if aux_backup_dir:
         # if the data is not ok to make a directory path then let juju catch it
         if not os.path.exists(aux_backup_dir):
             os.makedirs(aux_backup_dir)
-            hookenv.log("Creating auxiliary backup directory: {}".format(
+            hookenv.log("Created auxiliary backup directory: {}".format(
                 aux_backup_dir))
 
 
 @when('config.changed.backup_frequency')
 def validate_cron_frequency():
-    cron_frequency = hookenv.config().get("backup_frequency").lower()
+    cron_frequency = config.get("backup_frequency").lower()
     no_cron_options = ['manual']
     create_cron_options = ['hourly', 'daily', 'weekly', 'monthly']
     if cron_frequency in no_cron_options:
@@ -120,12 +122,10 @@ def validate_cron_frequency():
             croniter.croniter(cron_frequency)
             set_flag('duplicity.create_backup_cron')
         except (croniter.CroniterBadCronError, croniter.CroniterBadDateError, croniter.CroniterNotAlphaError):
-            clear_flag('duplicity.valid_backup_frequency')
+            set_flag('duplicity.invalid_backup_frequency')
             clear_flag('duplicity.create_backup_cron')
-            hookenv.status_set('blocked',
-                               'Invalid value "{}" for cron frequency'.format(cron_frequency))
             return
-    set_flag('duplicity.valid_backup_frequency')
+    clear_flag('duplicity.invalid_backup_frequency')
 
 
 @when_any('config.changed.encryption_passphrase',
@@ -135,36 +135,76 @@ def validate_encryption_method():
     """
     Function to check that a viable encryption method is configured.
     """
-    passphrase = hookenv.config().get("encryption_passphrase")
-    gpg_key = hookenv.config().get("gpg_public_key")
-    disable = hookenv.config().get("disable_encryption")
-    if not passphrase and not gpg_key and not disable:
-        hookenv.status_set('blocked', 'Must set either an encryption \
-passphrase, GPG public key, or disable encryption')
-        clear_flag('duplicity.valid_encryption_method')
+    passphrase = config.get("encryption_passphrase")
+    gpg_key = config.get("gpg_public_key")
+    disable = config.get("disable_encryption")
+    if any([passphrase, gpg_key, disable]):
+        clear_flag('duplicity.invalid_encryption_method')
+    else:
+        set_flag('duplicity.invalid_encryption_method')
+
+
+@when('duplicity.installed')
+def check_status():
+    hookenv.atexit(_assess_status)
+
+
+def _assess_status():
+    if is_flag_set('duplicity.invalid_remote_backup_url'):
+        hookenv.status_set(
+            workload_state='blocked',
+             message='Backup path is required. Set config for "remote_backup_url"'
+        )
         return
-    set_flag('duplicity.valid_encryption_method')
-
-
-@when_all('duplicity.valid_encryption_method',
-          'duplicity.valid_backend',
-          'duplicity.valid_backup_frequency')
-@when_not('duplicity.invalid_private_ssh_key')
-def app_ready():
+    if is_flag_set('duplicity.invalid_backend'):
+        hookenv.status_set(
+            workload_state='blocked',
+            message='Unrecognized backend "{}"'.format(config.get('backend'))
+        )
+        return
+    if is_flag_set('duplicity.invalid_aws_creds'):
+        hookenv.status_set(
+            workload_state='blocked',
+            message='S3 backups require "aws_access_key_id" and "aws_secret_access_key" to be set'
+        )
+        return
+    if is_flag_set('duplicity.invalid_secure_backend_opts'):
+        hookenv.status_set(
+            workload_state='blocked',
+            message='{} backend requires known_host_key and either "remote_password" or "private_ssh_key" to be set.'
+                .format(config.get('backend'))
+        )
+        return
+    if is_flag_set('duplicity.invalid_encryption_method'):
+        hookenv.status_set(
+            workload_state='blocked',
+            message='Must set either an encryption passphrase, GPG public key, or disable encryption'
+        )
+        return
+    if is_flag_set('duplicity.invalid_private_ssh_key'):
+        hookenv.status_set(
+            workload_state='blocked',
+            message='invalid private_ssh_key. ensure that key is base64 encoded'
+        )
+        return
+    if is_flag_set('duplicity.invalid_backup_frequency'):
+        hookenv.status_set(
+            workload_state='blocked',
+            message='Invalid value "{}" for "backup_frequency"'.format(config.get('backup_frequency'))
+        )
+        return
     hookenv.status_set('active', 'Ready')
 
 
-@when_all('duplicity.create_backup_cron',
-          'duplicity.valid_encryption_method',
-          'duplicity.valid_backend')
+@when('duplicity.create_backup_cron')
 def create_backup_cron():
     """
     Finalizes the backup cron script when duplicity has been configured
     successfully. The cron script will be a call to juju run-action do-backup
     """
-    hookenv.status_set('active', 'Rendering duplicity crontab')
+    hookenv.status_set('maintenance', 'Rendering duplicity crontab')
     helper.setup_backup_cron()
-    hookenv.status_set('active', 'Ready')
+    hookenv.status_set('active', 'Rendered duplicity crontab')
     clear_flag('duplicity.create_backup_cron')
 
 
@@ -174,7 +214,7 @@ def remove_backup_cron():
     Stops and removes the backup cron in case of duplicity not being configured correctly or manual|auto
     config option is set. The former ensures backups won't run under an incorrect config.
     """
-    cron_backup_frequency = hookenv.config().get('backup_frequency')
+    cron_backup_frequency = config.get('backup_frequency')
     hookenv.log(
         'Backup frequency set to {}. Skipping or removing cron setup.'.format(cron_backup_frequency))
     safe_remove_backup_cron()
@@ -183,9 +223,12 @@ def remove_backup_cron():
 
 @when('config.changed.private_ssh_key')
 def update_private_ssh_key():
-    private_key = hookenv.config().get('private_ssh_key')
+    private_key = config.get('private_ssh_key')
     if private_key:
-        hookenv.log('Updating private ssh key file.')
+        hookenv.status_set(
+            workload_state='maintenance',
+            message='Updating private ssh key'
+        )
         try:
             decoded_private_key = base64.b64decode(private_key).decode('utf-8')
         except (UnicodeDecodeError, binascii.Error) as e:
@@ -193,13 +236,10 @@ def update_private_ssh_key():
                 'Failed to decode private key {} to utf-8 with error: {}.\nNot creating ssh key file'.format(
                     private_key, e),
                 level=hookenv.ERROR)
-            hookenv.status_set(workload_state='blocked',
-                               message='invalid private_ssh_key. ensure that key is base64 encoded')
             set_flag('duplicity.invalid_private_ssh_key')
             return
         with open(PRIVATE_SSH_KEY_PATH, 'w') as f:
             f.write(decoded_private_key)
-        hookenv.log('Updated private ssh key file.')
     else:
         if os.path.exists(PRIVATE_SSH_KEY_PATH):
             os.remove(PRIVATE_SSH_KEY_PATH)
