@@ -202,7 +202,6 @@ def test_check_remote_backup_url(mock_config, mock_set_flag, mock_clear_flag, re
         mock_set_flag.assert_called_with('duplicity.invalid_backend')
 
 
-
 @pytest.mark.parametrize('encryption_passphrase,gpg_key,disable_encryption,valid', [
     ('e_pass', None, False, True),
     (None, 'GPG', False, True),
