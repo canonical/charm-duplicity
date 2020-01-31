@@ -52,7 +52,7 @@ class DuplicityHelper():
         # start building the url
         url = ""
 
-        if backend in ["rsync", "scp", "ssh", "ftp", "sftp"]:
+        if backend in ["rsync", "scp", "ftp", "sftp"]:
             # These all require SSH Type Authentication and will attempt to use
             # the provided remote host credentials
             user = self.charm_config.get("remote_user")
