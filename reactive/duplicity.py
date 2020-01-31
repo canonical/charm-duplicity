@@ -240,6 +240,7 @@ def update_private_ssh_key():
             return
         with open(PRIVATE_SSH_KEY_PATH, 'w') as f:
             f.write(decoded_private_key)
+        os.chmod(PRIVATE_SSH_KEY_PATH, 0o600)
     else:
         if os.path.exists(PRIVATE_SSH_KEY_PATH):
             os.remove(PRIVATE_SSH_KEY_PATH)
