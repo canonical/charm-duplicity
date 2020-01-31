@@ -195,7 +195,7 @@ class DuplicityBackupCommandTest(BaseDuplicityTest):
 
     @utils.config_restore('duplicity')
     def test_rsync_full_do_backup_action(self):
-        additional_config = dict(backend='scp')
+        additional_config = dict(backend='rsync')
         new_config = self.get_config(**additional_config)
         utils.set_config_and_wait(self.application_name, new_config)
         zaza.model.run_action(self.duplicity_unit.name, self.action, raise_on_failure=True)
