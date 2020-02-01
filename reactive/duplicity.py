@@ -76,6 +76,11 @@ def validate_backend():
         else:
             set_flag('duplicity.invalid_secure_backend_opts')
             return
+    elif backend == 'rsync':
+        if config.get('private_ssh_key'):
+            clear_flag('duplicity.invalid_rsync_key')
+        else:
+            set_flag('duplicity.invalid_rsync_key')
 
 
 @when('config.changed.known_host_key')
@@ -173,6 +178,12 @@ def assess_status():
             workload_state='blocked',
             message='{} backend requires known_host_key and either "remote_password" or '
                     '"private_ssh_key" to be set'.format(config.get('backend'))
+        )
+        return
+    if is_flag_set('duplicity.invalid_rsync_key'):
+        hookenv.status_set(
+            workload_state='blocked',
+            message='rsync backend requires private_ssh_key. remote_password auth not supported'
         )
         return
     if is_flag_set('duplicity.invalid_encryption_method'):
