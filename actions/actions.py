@@ -2,6 +2,7 @@
 
 import os
 import sys
+import traceback
 from subprocess import CalledProcessError
 
 sys.path.append('lib')
@@ -39,6 +40,7 @@ def main(args):
         hookenv.log(err_msg, level=hookenv.ERROR)
         hookenv.function_fail(err_msg)
     except Exception as e:
+        hookenv.log('do-backup action failed: {}\n{}'.format(e, traceback.print_exc()), level=hookenv.ERROR)
         hookenv.function_fail(str(e))
     else:
         clear_flag('duplicity.failed_backup')
