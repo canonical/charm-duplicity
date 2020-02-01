@@ -194,13 +194,6 @@ class DuplicityBackupCommandTest(BaseDuplicityTest):
         zaza.model.run_action(self.duplicity_unit.name, self.action, raise_on_failure=True)
 
     @utils.config_restore('duplicity')
-    def test_rsync_full_do_backup_action(self):
-        additional_config = dict(backend='rsync')
-        new_config = self.get_config(**additional_config)
-        utils.set_config_and_wait(self.application_name, new_config)
-        zaza.model.run_action(self.duplicity_unit.name, self.action, raise_on_failure=True)
-
-    @utils.config_restore('duplicity')
     def test_file_full_do_backup_action(self):
         additional_config = dict(backend='file', remote_backup_url='/home/ubuntu/test-backups')
         new_config = self.get_config(**additional_config)
@@ -210,6 +203,15 @@ class DuplicityBackupCommandTest(BaseDuplicityTest):
     @utils.config_restore('duplicity')
     def test_scp_full_ssh_key_auth_backup_action(self):
         additional_config = dict(backend='scp',
+                                 private_ssh_key=self.ssh_priv_key,
+                                 remote_password='')
+        new_config = self.get_config(**additional_config)
+        utils.set_config_and_wait(self.application_name, new_config)
+        zaza.model.run_action(self.duplicity_unit.name, self.action, raise_on_failure=True)
+
+    @utils.config_restore('duplicity')
+    def test_rsync_full_ssh_key_auth_backup_action(self):
+        additional_config = dict(backend='rsync',
                                  private_ssh_key=self.ssh_priv_key,
                                  remote_password='')
         new_config = self.get_config(**additional_config)
