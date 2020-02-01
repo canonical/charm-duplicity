@@ -1,3 +1,4 @@
 # Include python requirements here
 croniter
 pidfile
+fabric

@@ -12,5 +12,6 @@ options:
     python_packages:
       - croniter
       - pidfile
+      - fabric
     use_venv: True
     include_system_packages: true
