@@ -1,12 +1,15 @@
 import subprocess
 import os
+from urllib.parse import urlparse
 
 from charmhelpers.core import hookenv, templating
+from fabric import Connection
 
 
 BACKUP_CRON_FILE = '/etc/cron.d/periodic_backup'
 BACKUP_CRON_LOG_PATH = '/var/log/duplicity'
 ROOT_KNOWN_HOSTS_PATH = '/root/.ssh/known_hosts'
+PRIVATE_SSH_KEY_PATH = '/root/.ssh/duplicity_id_rsa'
 
 
 def safe_remove_backup_cron():
@@ -24,7 +27,10 @@ class DuplicityHelper():
     def backup_cmd(self):
         cmd = ['duplicity']
         if self.charm_config.get('private_ssh_key'):
-            cmd.append('--ssh-options=-oIdentityFile=/root/.ssh/duplicity_id_rsa')
+            if self.charm_config.get('backend') == 'rsync':
+                cmd.append('--rsync-options=-e "ssh -i /root/.ssh/duplicity_id_rsa"')
+            else:
+                cmd.append('--ssh-options=-oIdentityFile=/root/.ssh/duplicity_id_rsa')
         # later switch to cmd.append('full' if self.charm_config.get('full_backup') else 'incr')
         # when full_backup implemented
         cmd.append('full')
@@ -143,8 +149,32 @@ class DuplicityHelper():
         """
         self._set_environment_vars()
         cmd = self.backup_cmd
-        hookenv.log("Duplicity Command: {}".format(cmd).replace(self.charm_config.get('remote_password'), '*****'))
+        self.safe_log("Duplicity Command: {}".format(cmd))
+        if self.charm_config.get('backend') == 'rsync':
+            self.create_remote_dirs()
         return subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+
+    def safe_log(self, message, level=hookenv.INFO):
+        password = self.charm_config.get('remote_password')
+        if password and password in message:
+            message = message.replace(password, '*****')
+        hookenv.log(message=message, level=level)
+
+    def create_remote_dirs(self):
+        parsed_url = urlparse(self._backup_url())
+        at_index = parsed_url.netloc.find('@')
+        if at_index:
+            host = parsed_url.netloc[at_index+1:]
+        else:
+            host = parsed_url.netloc
+        conn = Connection(host=host)
+        user = self.charm_config.get('remote_user')
+        ssh_key_exists = self.charm_config.get('private_ssh_key')
+        if user:
+            conn.user = user
+        if ssh_key_exists:
+            conn.connect_kwargs = dict(key_filename=PRIVATE_SSH_KEY_PATH)
+        conn.run('mkdir -p {}/{}'.format(parsed_url.path[1:], hookenv.local_unit().replace("/", "-")))
 
     def cleanup(self):
         #TODO
