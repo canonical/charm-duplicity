@@ -1,15 +1,20 @@
 #!/usr/local/sbin/charm-env python3
-import sys
-import subprocess
+
+"""Periodic backup."""
+
 import os
+import subprocess
+import sys
 
 sys.path.append('lib')
 
 from charmhelpers.core import hookenv
+
 from charms.reactive import clear_flag
-from pidfile import PidFile
 
 from lib import lib_duplicity
+
+from pidfile import PidFile
 
 
 pidfile = '/var/run/periodic_backup.pid'
@@ -17,11 +22,13 @@ error_file = '/var/run/periodic_backup.error'
 
 
 def write_error_file(message):
+    """Write error log if backup failed."""
     with open(error_file, 'w') as f:
         f.write(message)
 
 
 def main():
+    """Periodically backup with juju run-action do-backup."""
     try:
         hookenv.log('Performing backup.')
         output = lib_duplicity.DuplicityHelper().do_backup()

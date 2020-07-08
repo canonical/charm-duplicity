@@ -1,8 +1,11 @@
-import subprocess
+"""Duplicity juju actions."""
+
 import os
+import subprocess
 from urllib.parse import urlparse
 
 from charmhelpers.core import hookenv, templating
+
 from fabric import Connection
 
 
@@ -13,6 +16,7 @@ PRIVATE_SSH_KEY_PATH = '/root/.ssh/duplicity_id_rsa'
 
 
 def safe_remove_backup_cron():
+    """Delete backup crontab."""
     if os.path.exists(BACKUP_CRON_FILE):
         hookenv.log('Removing backup cron file.', level=hookenv.DEBUG)
         os.remove(BACKUP_CRON_FILE)
@@ -20,11 +24,15 @@ def safe_remove_backup_cron():
 
 
 class DuplicityHelper():
+    """Actual juju actions handler."""
+
     def __init__(self):
+        """Introduce configurations."""
         self.charm_config = hookenv.config()
 
     @property
     def backup_cmd(self):
+        """Juju action do-backup handler."""
         cmd = ['duplicity']
         if self.charm_config.get('private_ssh_key'):
             if self.charm_config.get('backend') == 'rsync':
@@ -40,12 +48,14 @@ class DuplicityHelper():
 
     @property
     def list_files_cmd(self):
+        """Juju action list-current-files handler."""
         cmd = ['duplicity', 'list-current-files', self._backup_url()]
         cmd.extend(self._additional_options())
         return cmd
 
     def _backup_url(self):
-        """
+        """Remote URL.
+
         Helper function to assemble the backup url into a format accepted
         by duplicity, based off of the 'backend' and 'remote_backup_url'
         defined in the charm config. _backup_url will be appended with the
@@ -79,7 +89,8 @@ class DuplicityHelper():
         return url
 
     def _set_environment_vars(self):
-        """
+        """Environment vars.
+
         Helper function sets the required environmental variables used by
         duplicity.
         :return:
@@ -93,7 +104,8 @@ class DuplicityHelper():
             "encryption_passphrase")
 
     def _additional_options(self):
-        """
+        """Additional options to add to the duplicity cmd.
+
         Parses the config options and provides a list of args to be passed to
         duplicity, and useful for multiple duplicity actions.
         :return:
@@ -109,8 +121,9 @@ class DuplicityHelper():
         return cmd
 
     def setup_backup_cron(self):
-        """
-        Sets up the backup cron to run on the unit. Renders the cron and ensures logging
+        """Prepare the backup cron to run on the unit.
+
+        Renders the cron and ensures logging
         directory exists.
         """
         if not os.path.exists(BACKUP_CRON_LOG_PATH):
@@ -118,9 +131,7 @@ class DuplicityHelper():
         self._render_backup_cron()
 
     def _render_backup_cron(self):
-        """
-        Render backup cron.
-        """
+        """Render backup cron."""
         backup_frequency = self.charm_config.get('backup_frequency')
         if backup_frequency in ['hourly', 'daily', 'weekly', 'monthly']:
             backup_frequency = '@{}'.format(backup_frequency)
@@ -135,6 +146,7 @@ class DuplicityHelper():
 
     @staticmethod
     def update_known_host_file(known_host_key):
+        """Update known host file."""
         permissions = 'a+' if os.path.exists(ROOT_KNOWN_HOSTS_PATH) else 'w+'
         with open(ROOT_KNOWN_HOSTS_PATH, permissions) as known_host_file:
             contents = known_host_file.read()
@@ -142,7 +154,7 @@ class DuplicityHelper():
                 print(known_host_key, file=known_host_file)
 
     def do_backup(self, **kwargs):
-        """ Execute the backup call to duplicity as configured by the charm
+        """Execute the backup call to duplicity as configured by the charm.
 
         :param: kwargs
         :type: dictionary of values that may be used instead of config values
@@ -155,16 +167,18 @@ class DuplicityHelper():
         return subprocess.check_output(cmd, stderr=subprocess.STDOUT)
 
     def safe_log(self, message, level=hookenv.INFO):
+        """Replace password in the log with ***."""
         password = self.charm_config.get('remote_password')
         if password and password in message:
             message = message.replace(password, '*****')
         hookenv.log(message=message, level=level)
 
     def create_remote_dirs(self):
+        """Create remote dirs when using rsync backend."""
         parsed_url = urlparse(self._backup_url())
         at_index = parsed_url.netloc.find('@')
         if at_index:
-            host = parsed_url.netloc[at_index+1:]
+            host = parsed_url.netloc[at_index + 1:]
         else:
             host = parsed_url.netloc
         conn = Connection(host=host)
@@ -177,25 +191,34 @@ class DuplicityHelper():
         conn.run('mkdir -p {}/{}'.format(parsed_url.path[1:], hookenv.local_unit().replace("/", "-")))
 
     def cleanup(self):
-        #TODO
+        # TODO
         # duplicity cleanup <target_url>
+        """Delete the extraneous duplicity files on the given backend."""
         raise NotImplementedError()
 
     def verify(self):
-        #TODO
+        # TODO
         # duplicity verify <target_url> <source_dir>
+        """Restore backup contents.
+
+        Restore temporarily file by file and compare against the local path’s contents
+        """
         raise NotImplementedError()
 
     def collection_status(self):
-        #TODO
+        # TODO
         # duplicity collection-status <target_url>
+        """Summarize the status of the backup repository.
+
+        List the status by printing the chains and sets found, and the number of volumes in each
+        """
         raise NotImplementedError()
 
     def list_current_files(self, **kwargs):
-        """
-        Function that runs duplicity list current files in the remote
-        directory.
-        :return:
+        """Duplicity list current files in the remote directory.
+
+        :param: kwargs
+        :type: dictionary of values that may be used instead of config values
         """
         raise NotImplementedError()
         # self._set_environment_vars()
@@ -206,21 +229,25 @@ class DuplicityHelper():
         #     pass
 
     def restore(self):
-        #TODO
+        # TODO
         # duplicity restore <source_url> <target_dir>
+        """Restore the full monty or selected folders/files."""
         raise NotImplementedError()
 
     def remove_older_than(self):
-        #TODO
+        # TODO
         # duplicity remove-older-than time [options] target_url
+        """Delete all backup sets older than the given time."""
         raise NotImplementedError()
 
     def remove_all_but_n_full(self):
-        #TODO
+        # TODO
         # duplicity remove-all-but-n-full <count> <target_url>
+        """Keep the last count full backups and associated incremental sets."""
         raise NotImplementedError()
 
     def remove_all_inc_of_but_n_full(self):
-        #TODO
+        # TODO
         # duplicity remove-all-inc-of-but-n-full <count> <target_url>
+        """Keep only old full backups and not their increments."""
         raise NotImplementedError()

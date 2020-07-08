@@ -1,4 +1,5 @@
 #!/usr/local/sbin/charm-env python3
+"""Supported actions for juju run-action."""
 
 import os
 import sys
@@ -8,6 +9,7 @@ from subprocess import CalledProcessError
 sys.path.append('lib')
 
 from charmhelpers.core import hookenv
+
 from charms.reactive import clear_flag
 
 from lib_duplicity import DuplicityHelper
@@ -18,6 +20,7 @@ error_file = '/var/run/periodic_backup.error'
 
 
 def do_backup(*args):
+    """do-backup action."""
     output = helper.do_backup()
     hookenv.function_set(dict(output=output.decode('utf-8')))
 
@@ -28,6 +31,7 @@ ACTIONS = {
 
 
 def main(args):
+    """Supported actions."""
     action_name = os.path.basename(args[0])
     action = ACTIONS.get(action_name)
     if not action:

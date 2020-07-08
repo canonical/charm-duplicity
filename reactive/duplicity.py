@@ -1,8 +1,8 @@
-"""
-This is the collection of the duplicity charm's reactive scripts. It defines
-functions used as callbacks to shape the charm's behavior during various state
-change events such as relations being added, config values changing, relations
-joining etc.
+"""This is the collection of the duplicity charm's reactive scripts.
+
+It defines functions used as callbacks to shape the charm's behavior
+during various state change events such as relations being added,
+config values changing, relations joining etc.
 
 See the following for information about reactive charms:
   * https://jujucharms.com/docs/devel/developer-getting-started
@@ -12,10 +12,12 @@ import base64
 import binascii
 import os
 
-from charmhelpers.core import hookenv, host
-from charmhelpers.contrib.charmsupport.nrpe import NRPE
 from charmhelpers import fetch
-from charms.reactive import set_flag, clear_flag, when_not, when, hook, when_any, is_flag_set
+from charmhelpers.contrib.charmsupport.nrpe import NRPE
+from charmhelpers.core import hookenv, host
+
+from charms.reactive import clear_flag, hook, is_flag_set, set_flag, when, when_any, when_not
+
 import croniter
 
 from lib_duplicity import DuplicityHelper, safe_remove_backup_cron
@@ -29,8 +31,9 @@ config = hookenv.config()
 
 @when_not('duplicity.installed')
 def install_duplicity():
-    """
-    Apt install duplicity's dependencies:
+    """Apt install duplicity's dependencies.
+
+    include:
       - duplicity
       - python-paramiko for ssh
       - python-boto for aws
@@ -53,7 +56,8 @@ def install_duplicity():
           'config.changed.remote_password',
           'config.changed.private_ssh_key')
 def validate_backend():
-    """
+    """Supported backends.
+
     Validates that the config value for 'backend' is something that duplicity
     can use (see config description for backend for the accepted types). For S3
     only, check that the AWS IMA credentials are also set.
@@ -85,6 +89,7 @@ def validate_backend():
 
 @when('config.changed.known_host_key')
 def update_known_host_key():
+    """If known_host_key is set in the config, update known_host file."""
     known_host_key = config.get('known_host_key')
     if known_host_key:
         hookenv.status_set(
@@ -96,6 +101,7 @@ def update_known_host_key():
 
 @when('config.changed.remote_backup_url')
 def check_remote_backup_url():
+    """When backup url is set, clear invalid_backend flag."""
     if config.get('remote_backup_url'):
         clear_flag('duplicity.invalid_backend')
     else:
@@ -104,6 +110,7 @@ def check_remote_backup_url():
 
 @when('config.changed.aux_backup_directory')
 def create_aux_backup_directory():
+    """Create aux_backup_directory."""
     aux_backup_dir = config.get("aux_backup_directory")
     if aux_backup_dir:
         # if the data is not ok to make a directory path then let juju catch it
@@ -115,6 +122,11 @@ def create_aux_backup_directory():
 
 @when('config.changed.backup_frequency')
 def validate_cron_frequency():
+    """Check how the backup frequency is configured.
+
+    If goes with manual, do not create crontab.
+    Otherwise create a crontab to do the backup.
+    """
     cron_frequency = config.get("backup_frequency").lower()
     no_cron_options = ['manual']
     create_cron_options = ['hourly', 'daily', 'weekly', 'monthly']
@@ -137,9 +149,7 @@ def validate_cron_frequency():
           'config.changed.gpg_public_key',
           'config.changed.disable_encryption')
 def validate_encryption_method():
-    """
-    Function to check that a viable encryption method is configured.
-    """
+    """Check that if a viable encryption method is configured."""
     passphrase = config.get("encryption_passphrase")
     gpg_key = config.get("gpg_public_key")
     disable = config.get("disable_encryption")
@@ -151,10 +161,12 @@ def validate_encryption_method():
 
 @when('duplicity.installed')
 def check_status():
+    """Check the current configuration status."""
     hookenv.atexit(assess_status)
 
 
 def assess_status():
+    """All the possible status."""
     if is_flag_set('duplicity.invalid_remote_backup_url'):
         hookenv.status_set(
             workload_state='blocked',
@@ -209,7 +221,8 @@ def assess_status():
 
 @when('duplicity.create_backup_cron')
 def create_backup_cron():
-    """
+    """Create backup crontab.
+
     Finalizes the backup cron script when duplicity has been configured
     successfully. The cron script will be a call to juju run-action do-backup
     """
@@ -221,7 +234,8 @@ def create_backup_cron():
 
 @when('duplicity.remove_backup_cron')
 def remove_backup_cron():
-    """
+    """Remove backup crontab.
+
     Stops and removes the backup cron in case of duplicity not being configured correctly or manual|auto
     config option is set. The former ensures backups won't run under an incorrect config.
     """
@@ -234,6 +248,7 @@ def remove_backup_cron():
 
 @when('config.changed.private_ssh_key')
 def update_private_ssh_key():
+    """If configured to use private key, update it to PRIVATE_SSH_KEY_PATH."""
     private_key = config.get('private_ssh_key')
     if private_key:
         hookenv.status_set(
@@ -261,6 +276,7 @@ def update_private_ssh_key():
 @when('nrpe-external-master.available')
 @when_not('nrpe-external-master.initial-config')
 def initial_nrpe_config():
+    """Initialize nrpe configurations when available."""
     set_flag('nrpe-external-master.initial-config')
     render_checks()
 
@@ -269,6 +285,7 @@ def initial_nrpe_config():
 @when_any('config.changed.nagios_context',
           'config.changed.nagios_servicegroups')
 def render_checks():
+    """Add nrpe checks to check periodic backup status."""
     hookenv.log('Creating NRPE checks.')
     charm_plugin_dir = os.path.join(hookenv.charm_dir(), 'scripts', 'plugins/')
     if not os.path.exists(PLUGINS_DIR):
@@ -288,6 +305,7 @@ def render_checks():
 @when('nrpe-external-master.configured')
 @when_not('nrpe-external-master.available')
 def remove_nrpe_checks():
+    """Delete nrpe checks."""
     nrpe = NRPE()
     nrpe.remove_check(shortname='backups')
     clear_flag('nrpe-external-master.configured')
@@ -295,4 +313,9 @@ def remove_nrpe_checks():
 
 @hook()
 def stop():
+    """Stop and removes the backup crontab.
+
+    Stops and removes the backup cron in case of duplicity not being
+    configured correctly or manual|auto.
+    """
     safe_remove_backup_cron()
