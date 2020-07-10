@@ -35,7 +35,6 @@ class TestValidateBackend:
     @pytest.mark.parametrize('backend,remote_password,ssh_key', [
         ('scp', 'remote-pass', None),
         ('scp', None, 'ssh_key'),
-        ('rsync', 'remote-pass', None),
         ('rsync', None, 'ssh_key'),
         ('sftp', 'remote-pass', None),
         ('sftp', None, 'ssh_key'),
@@ -46,7 +45,11 @@ class TestValidateBackend:
     def test_validate_backend_success_secured(
             self, mock_config, mock_clear_flag, mock_set_flag, backend, remote_password, ssh_key):
         known_host_key = 'host_key'
-        side_effects = [backend, known_host_key, remote_password, ssh_key]
+        if backend == 'rsync':
+            side_effects = [backend, ssh_key, known_host_key,
+                            remote_password, ssh_key]
+        else:
+            side_effects = [backend, known_host_key, remote_password, ssh_key]
         mock_config.get.side_effect = side_effects
         duplicity.validate_backend()
         mock_set_flag.assert_not_called()
