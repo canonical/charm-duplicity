@@ -55,15 +55,22 @@ class TestValidateBackend:
         mock_set_flag.assert_not_called()
         mock_clear_flag.assert_called_with('duplicity.invalid_secure_backend_opts')
 
+    @pytest.mark.parametrize('backend', ['scp', 'rsync'])
     @patch('duplicity.set_flag')
     @patch('duplicity.clear_flag')
     @patch('duplicity.config')
-    def test_invalid_backend_secured_no_host_key(self, mock_config, mock_clear_flag, mock_set_flag):
-        backend = 'scp'
-        mock_config.get.side_effect = [backend, None, None, None]
+    def test_invalid_backend_secured_no_host_key(
+            self, mock_config, mock_clear_flag, mock_set_flag, backend):
+        if backend == 'rsync':
+            mock_config.get.side_effect = [backend, 'ssk_key', None, None, 'ssh_key']
+        else:
+            mock_config.get.side_effect = [backend, None, None, None]
         duplicity.validate_backend()
         mock_set_flag.assert_called_with('duplicity.invalid_secure_backend_opts')
-        mock_clear_flag.assert_called_with('duplicity.invalid_backend')
+        if backend == 'rsync':
+            mock_clear_flag.assert_called_with('duplicity.invalid_rsync_key')
+        else:
+            mock_clear_flag.assert_called_with('duplicity.invalid_backend')
 
     @patch('duplicity.set_flag')
     @patch('duplicity.clear_flag')
