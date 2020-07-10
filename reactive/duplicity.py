@@ -74,17 +74,18 @@ def validate_backend():
         else:
             set_flag('duplicity.invalid_aws_creds')
             return
-    elif backend in ['scp', 'rsync', 'sftp']:
+    elif backend == 'rsync':
+        if config.get("private_ssh_key"):
+            clear_flag('duplicity.invalid_rsync_key')
+        else:
+            set_flag('duplicity.invalid_rsync_key')
+            return
+    if backend in ['scp', 'rsync', 'sftp']:
         if config.get('known_host_key') and any([config.get('remote_password'), config.get('private_ssh_key')]):
             clear_flag('duplicity.invalid_secure_backend_opts')
         else:
             set_flag('duplicity.invalid_secure_backend_opts')
             return
-    elif backend == 'rsync':
-        if config.get('private_ssh_key'):
-            clear_flag('duplicity.invalid_rsync_key')
-        else:
-            set_flag('duplicity.invalid_rsync_key')
 
 
 @when('config.changed.known_host_key')
