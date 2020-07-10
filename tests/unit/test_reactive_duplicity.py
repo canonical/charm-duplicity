@@ -234,10 +234,12 @@ class TestCheckStatus:
          'S3 backups require "aws_access_key_id" and "aws_secret_access_key" to be set', 2),
         ('duplicity.invalid_secure_backend_opts',
          '{} backend requires known_host_key and either "remote_password" or "private_ssh_key" to be set', 3),
+        ('duplicity.invalid_rsync_key',
+         'rsync backend requires private_ssh_key. remote_password auth not supported', 4),
         ('duplicity.invalid_encryption_method',
-         'Must set either an encryption passphrase, GPG public key, or disable encryption', 4),
-        ('duplicity.invalid_private_ssh_key', 'Invalid private_ssh_key. ensure that key is base64 encoded', 5),
-        ('duplicity.invalid_backup_frequency', 'Invalid value "{}" for "backup_frequency"', 6),
+         'Must set either an encryption passphrase, GPG public key, or disable encryption', 5),
+        ('duplicity.invalid_private_ssh_key', 'Invalid private_ssh_key. ensure that key is base64 encoded', 6),
+        ('duplicity.invalid_backup_frequency', 'Invalid value "{}" for "backup_frequency"', 7),
     ])
     @patch('duplicity.is_flag_set')
     @patch('duplicity.hookenv')
