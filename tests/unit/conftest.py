@@ -29,7 +29,8 @@ def mock_hookenv_config(monkeypatch):
 
     def mock_config():
         cfg = {}
-        yml = yaml.safe_load(open('./config.yaml'))
+        with open('./config.yaml') as cfg_file:
+            yml = yaml.safe_load(cfg_file)
 
         # Load all defaults
         for key, value in yml['options'].items():
