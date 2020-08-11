@@ -309,10 +309,11 @@ def test_remove_backup_cron(mock_clear_flag, mock_safe_remove_backup_cron, mock_
 
 
 class TestUpdatePrivateSshKey:
+    @patch('os.chmod')
     @patch('duplicity.clear_flag')
     @patch('duplicity.base64')
     @patch('duplicity.hookenv')
-    def test_update_key_success(self, mock_config, mock_base64, mock_clear_flag):
+    def test_update_key_success(self, mock_config, mock_base64, mock_clear_flag, os_chmod):
         private_key = 'a_key'
         decoded_key = 'a_decoded_key'
         mock_config.get.return_value = private_key
@@ -324,6 +325,7 @@ class TestUpdatePrivateSshKey:
         handler = m_open()
         handler.write.assert_called_with(decoded_key)
         mock_clear_flag.assert_called_with('duplicity.invalid_private_ssh_key')
+        os_chmod.assert_called_with('/root/.ssh/duplicity_id_rsa', 0o600)
 
     @pytest.mark.parametrize('path_exists', [True, False])
     @patch('duplicity.clear_flag')
