@@ -4,14 +4,18 @@ exclude:
   - layers
 # include required layers here
 includes:
+  - layer:basic
   - layer:apt
+  - layer:venv
   - layer:nagios
   - interface:juju-info
 options:
   basic:
-    python_packages:
-      - croniter
-      - pidfile
-      - fabric
-    use_venv: True
+    packages:
+      - 'libffi-dev'
+    use_venv: true
     include_system_packages: true
+  venv:
+    packages:
+      - "fabric"
+    env_name: duplicity

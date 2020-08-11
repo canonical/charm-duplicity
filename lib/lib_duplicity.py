@@ -1,12 +1,17 @@
 """Duplicity juju actions."""
-
+import glob
 import os
 import subprocess
+import sys
 from urllib.parse import urlparse
 
 from charmhelpers.core import hookenv, templating
 
-from fabric import Connection
+if glob.glob("/opt/juju_venvs/duplicity/lib/python*/site-packages"):
+    sys.path.insert(
+        1, glob.glob("/opt/juju_venvs/duplicity/lib/python*/site-packages")[0]
+    )
+    from fabric import Connection
 
 
 BACKUP_CRON_FILE = '/etc/cron.d/periodic_backup'
