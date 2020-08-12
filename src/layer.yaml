@@ -19,3 +19,4 @@ options:
     packages:
       - "fabric"
     env_name: duplicity
+repo: https://git.launchpad.net/charm-duplicity

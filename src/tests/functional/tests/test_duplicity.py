@@ -1,13 +1,12 @@
 import unittest
 import asyncio
 import concurrent.futures
-from pprint import pprint
 import base64
 
 import zaza.model
 
-from tests.functional import utils
-from tests.functional.configure import (
+from tests import utils
+from tests.configure import (
     ubuntu_backup_directory_source,
     ubuntu_user_pass
 )
@@ -181,7 +180,7 @@ class DuplicityBackupCommandTest(BaseDuplicityTest):
 
     @staticmethod
     def get_ssh_priv_key():
-        with open('./tests/functional/resources/testing_id_rsa', 'rb') as f:
+        with open('./tests/resources/testing_id_rsa', 'rb') as f:
             ssh_private_key = f.read()
         encoded_ssh_private_key = base64.b64encode(ssh_private_key)
         return encoded_ssh_private_key.decode('utf-8')

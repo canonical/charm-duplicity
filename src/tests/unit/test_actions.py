@@ -34,10 +34,8 @@ class TestActions:
         mock_clear_flag.assert_not_called()
 
     @pytest.mark.parametrize('exception_raised,expected_fail_contains', [
-        (
-                CalledProcessError(returncode=2, output='my-error-output'.encode('utf-8'), cmd='cmd'),
-                ['2', 'my-error-output']
-        ),
+        (CalledProcessError(returncode=2, output='my-error-output'.encode('utf-8'), cmd='cmd'),
+         ['2', 'my-error-output']),
         (Exception('generic exception'), ['generic exception'])
     ])
     @patch('actions.hookenv')

@@ -1,4 +1,4 @@
-from unittest.mock import patch, call, ANY, mock_open, MagicMock, DEFAULT
+from unittest.mock import patch, call, ANY, mock_open, MagicMock
 
 import pytest
 from croniter import CroniterBadCronError, CroniterBadDateError, CroniterNotAlphaError

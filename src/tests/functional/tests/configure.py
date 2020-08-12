@@ -1,6 +1,5 @@
 import logging
 import subprocess
-from pprint import pprint
 
 import zaza.model
 
@@ -31,7 +30,7 @@ def setup_test_files_for_backup():
     _check_run_result(result, codes=['1'])
     zaza.model.scp_to_unit(
         unit_name=ubuntu_unit.name,
-        source='./tests/functional/resources/hello-world.txt',
+        source='./tests/resources/hello-world.txt',
         destination=ubuntu_backup_directory_source
     )
 
@@ -45,7 +44,7 @@ def set_backup_host_known_host_key():
 
 def add_pub_key_to_backup_host():
     backup_host_unit = _get_unit('backup-host')
-    with open('./tests/functional/resources/testing_id_rsa.pub') as f:
+    with open('./tests/resources/testing_id_rsa.pub') as f:
         pub_key = f.read().strip()
     command = 'echo "{}" >> /home/ubuntu/.ssh/authorized_keys'.format(pub_key)
     result = zaza.model.run_on_unit(backup_host_unit.name, command, timeout=15)
