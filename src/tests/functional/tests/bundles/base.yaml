@@ -1,0 +1,26 @@
+applications:
+  ubuntu:
+    charm: cs:ubuntu
+    num_units: 1
+
+  backup-host:
+    charm: cs:ubuntu
+    num_units: 1
+
+  nrpe:
+    charm: cs:nrpe
+
+  duplicity:
+    charm: /tmp/charm-builds/duplicity
+    options:
+      backend: file
+      remote_backup_url: 'file:///home/ubuntu/somedir'
+      disable_encryption: True
+
+relations:
+  - - ubuntu
+    - duplicity
+  - - duplicity
+    - nrpe
+  - - nrpe
+    - ubuntu

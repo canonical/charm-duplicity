@@ -14,6 +14,7 @@ tags:
   - backup
 subordinate: true
 series:
+  - focal
   - bionic
   - xenial
 provides:

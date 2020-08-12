@@ -13,6 +13,7 @@ configure:
 gate_bundles:
   - xenial
   - bionic
+  - focal
 dev_bundles:
   - xenial
   - bionic
