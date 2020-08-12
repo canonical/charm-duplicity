@@ -12,7 +12,7 @@ includes:
 options:
   basic:
     packages:
-      - 'libffi-dev'
+      - 'libffi-dev' # Needed to install cryptography, fabric dependency.
     use_venv: true
     include_system_packages: true
   venv:
