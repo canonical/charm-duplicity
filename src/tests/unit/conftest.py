@@ -59,8 +59,7 @@ def mock_charm_dir(monkeypatch):
 
 
 @pytest.fixture
-def duplicity_helper(tmpdir, mock_hookenv_config, mock_charm_dir, mock_local_unit,
-              monkeypatch):
+def duplicity_helper(tmpdir, mock_hookenv_config, mock_charm_dir, mock_local_unit, monkeypatch):
     from lib_duplicity import DuplicityHelper
     helper = DuplicityHelper()
 

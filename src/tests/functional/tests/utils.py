@@ -20,6 +20,7 @@ def get_workload_application_status_checker(application_name, target_status):
 def config_restore(*applications):
     def config_restore_wrap(f):
         AppConfigPair = namedtuple('AppConfigPair', ['app_name', 'config'])
+
         @wraps(f)
         def wrapped_f(*args):
             original_configs = [AppConfigPair(app, get_app_config(app)) for app in applications]
@@ -50,5 +51,3 @@ def _convert_config(config):
     for key, value in config.items():
         clean_config[key] = "{}".format(value["value"])
     return clean_config
-
-

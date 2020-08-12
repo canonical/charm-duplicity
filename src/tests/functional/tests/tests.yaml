@@ -1,0 +1,20 @@
+charm_name: duplicity
+tests:
+  - tests.test_duplicity.DuplicityBackupCronTest
+  - tests.test_duplicity.DuplicityEncryptionValidationTest
+  - tests.test_duplicity.DuplicityBackupCommandTest
+configure:
+  - tests.configure.set_ubuntu_password_on_backup_host
+  - tests.configure.set_ssh_password_access_on_backup_host
+  - tests.configure.setup_test_files_for_backup
+  - tests.configure.set_backup_host_known_host_key
+  - tests.configure.add_pub_key_to_backup_host
+  - tests.configure.setup_ftp
+gate_bundles:
+  - xenial
+  - bionic
+dev_bundles:
+  - xenial
+  - bionic
+smoke_bundles:
+  - bionic
