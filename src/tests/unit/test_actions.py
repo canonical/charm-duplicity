@@ -35,14 +35,12 @@ class TestActions:
 
     @pytest.mark.parametrize("error_path_exists", [True, False])
     @patch("actions.list_current_files")
-    @patch("actions.clear_flag")
     @patch("actions.os.path.exists")
     @patch("actions.os.remove")
     def test_list_files_action_run_success(
         self,
         mock_remove,
         mock_exists,
-        mock_clear_flag,
         mock_list_current_files,
         error_path_exists,
     ):
@@ -52,7 +50,6 @@ class TestActions:
         actions.ACTIONS["list-current-files"] = mock_list_current_files
         actions.main(action_args)
         mock_list_current_files.assert_called_with(action_args)
-        mock_clear_flag.assert_called()
         assert mock_remove.called == error_path_exists
 
     @patch("actions.do_backup")
