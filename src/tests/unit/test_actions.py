@@ -1,5 +1,7 @@
-from unittest.mock import patch
+"""Unit tests for charm actions."""
+
 from subprocess import CalledProcessError
+from unittest.mock import patch
 
 import pytest
 
@@ -8,6 +10,8 @@ with patch("lib_duplicity.DuplicityHelper") as mock_duplicity_helper:
 
 
 class TestActions:
+    """Unit tests for charm actions."""
+
     @pytest.mark.parametrize("error_path_exists", [True, False])
     @patch("actions.do_backup")
     @patch("actions.clear_flag")
@@ -21,6 +25,7 @@ class TestActions:
         mock_do_backup,
         error_path_exists,
     ):
+        """Verify valid action."""
         action_args = ["actions/do-backup"]
         mock_exists.return_value = error_path_exists
         actions.ACTIONS["do-backup"] = mock_do_backup
@@ -35,6 +40,7 @@ class TestActions:
     def test_action_run_undefined_action(
         self, mock_remove, mock_clear_flag, mock_do_backup
     ):
+        """Verify invalid action."""
         action_args = ["actions/bad_action"]
         actions.ACTIONS["do-backup"] = mock_do_backup
         result = actions.main(action_args)
@@ -67,6 +73,7 @@ class TestActions:
         exception_raised,
         expected_fail_contains,
     ):
+        """Verify action returns an error."""
         action_args = ["actions/do-backup"]
         mock_do_backup.side_effect = exception_raised
         actions.ACTIONS["do-backup"] = mock_do_backup
@@ -82,9 +89,12 @@ class TestActions:
 
 
 class TestDoBackupAction:
+    """Verify do-backup action."""
+
     @patch("actions.helper")
     @patch("actions.hookenv")
     def test_do_backup(self, mock_hookenv, mock_helper):
+        """Verify do-backup action."""
         result = "action_output".encode("utf-8")
         mock_helper.do_backup.return_value = result
         expected_dict_input = dict(output=result.decode("utf-8"))
