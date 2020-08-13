@@ -314,3 +314,131 @@ class DuplicityBackupCommandTest(BaseDuplicityTest):
         zaza.model.run_action(
             self.duplicity_unit.name, self.action, raise_on_failure=True
         )
+
+
+class DuplicityListFilesCommandTest(BaseDuplicityTest):
+    """Verify list-current-files action."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Set up list-current-files action tests."""
+        super().setUpClass()
+        cls.backup_host = zaza.model.get_units("backup-host")[0]
+        cls.duplicity_unit = zaza.model.get_units("duplicity")[0]
+        cls.backup_host_ip = cls.backup_host.public_address
+        user_pass_pair = ubuntu_user_pass.split(":")
+        cls.remote_user = user_pass_pair[0]
+        cls.remote_pass = user_pass_pair[1]
+        cls.action = "list-current-files"
+        cls.ssh_priv_key = cls.get_ssh_priv_key()
+
+    def get_config(self, **kwargs):
+        """Get charm config."""
+        base_config = dict(
+            remote_backup_url=self.backup_host_ip,
+            aux_backup_directory=ubuntu_backup_directory_source,
+            remote_user=self.remote_user,
+            remote_password=self.remote_pass,
+        )
+        base_config.update(kwargs)
+        return base_config
+
+    @staticmethod
+    def get_ssh_priv_key():
+        """Get ssh private key."""
+        with open("./tests/resources/testing_id_rsa", "rb") as f:
+            ssh_private_key = f.read()
+        encoded_ssh_private_key = base64.b64encode(ssh_private_key)
+        return encoded_ssh_private_key.decode("utf-8")
+
+    @utils.config_restore("duplicity")
+    def test_scp_full_list_current_files_action(self):
+        """Verify list-current-files work with scp backend."""
+        new_config = self.get_config(backend="scp")
+        utils.set_config_and_wait(self.application_name, new_config)
+        zaza.model.run_action(
+            self.duplicity_unit.name, "do-backup", raise_on_failure=True
+        )
+        zaza.model.run_action(
+            self.duplicity_unit.name, self.action, raise_on_failure=True
+        )
+
+    @utils.config_restore("duplicity")
+    def test_file_full_list_current_files_action(self):
+        """Verify list-current-files work with file backend."""
+        new_config = self.get_config(
+            backend="file", remote_backup_url="/home/ubuntu/test-backups"
+        )
+        utils.set_config_and_wait(self.application_name, new_config)
+        zaza.model.run_action(
+            self.duplicity_unit.name, "do-backup", raise_on_failure=True
+        )
+        zaza.model.run_action(
+            self.duplicity_unit.name, self.action, raise_on_failure=True
+        )
+
+    @utils.config_restore("duplicity")
+    def test_scp_full_ssh_key_auth_list_current_files_action(self):
+        """Verify list-current-files work after do-backup run."""
+        new_config = self.get_config(
+            backend="scp", private_ssh_key=self.ssh_priv_key, remote_password=""
+        )
+        utils.set_config_and_wait(self.application_name, new_config)
+        zaza.model.run_action(
+            self.duplicity_unit.name, "do-backup", raise_on_failure=True
+        )
+        zaza.model.run_action(
+            self.duplicity_unit.name, self.action, raise_on_failure=True
+        )
+
+    @utils.config_restore("duplicity")
+    def test_rsync_full_ssh_key_auth_list_current_files_action(self):
+        """Verify list-current-files work with rsync backend after do-backup run."""
+        new_config = self.get_config(
+            backend="rsync", private_ssh_key=self.ssh_priv_key, remote_password=""
+        )
+        utils.set_config_and_wait(self.application_name, new_config)
+        zaza.model.run_action(
+            self.duplicity_unit.name, "do-backup", raise_on_failure=True
+        )
+        zaza.model.run_action(
+            self.duplicity_unit.name, self.action, raise_on_failure=True
+        )
+
+    @utils.config_restore("duplicity")
+    def test_sftp_full_list_current_files(self):
+        """Verify list-current-files work with sftp backend after do-backup run."""
+        new_config = self.get_config(backend="sftp")
+        utils.set_config_and_wait(self.application_name, new_config)
+        zaza.model.run_action(
+            self.duplicity_unit.name, "do-backup", raise_on_failure=True
+        )
+        zaza.model.run_action(
+            self.duplicity_unit.name, self.action, raise_on_failure=True
+        )
+
+    @utils.config_restore("duplicity")
+    def test_sftp_full_ssh_key_list_current_files(self):
+        """Verify list-current-files work with sftp backend after do-backup run."""
+        new_config = self.get_config(
+            backend="sftp", private_ssh_key=self.ssh_priv_key, remote_password=""
+        )
+        utils.set_config_and_wait(self.application_name, new_config)
+        zaza.model.run_action(
+            self.duplicity_unit.name, "do-backup", raise_on_failure=True
+        )
+        zaza.model.run_action(
+            self.duplicity_unit.name, self.action, raise_on_failure=True
+        )
+
+    @utils.config_restore("duplicity")
+    def test_ftp_full_list_current_files(self):
+        """Verify list-current-files work with ftp backend after do-backup run."""
+        new_config = self.get_config(backend="ftp")
+        utils.set_config_and_wait(self.application_name, new_config)
+        zaza.model.run_action(
+            self.duplicity_unit.name, "do-backup", raise_on_failure=True
+        )
+        zaza.model.run_action(
+            self.duplicity_unit.name, self.action, raise_on_failure=True
+        )

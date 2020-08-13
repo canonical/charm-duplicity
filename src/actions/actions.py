@@ -25,7 +25,13 @@ def do_backup(*args):
     hookenv.function_set(dict(output=output.decode("utf-8")))
 
 
-ACTIONS = {"do-backup": do_backup}
+def list_current_files(*args):
+    """list-current-files action."""
+    output = helper.list_current_files()
+    hookenv.function_set(dict(output=output.decode("utf-8")))
+
+
+ACTIONS = {"do-backup": do_backup, "list-current-files": list_current_files}
 
 
 def main(args):
@@ -52,7 +58,8 @@ def main(args):
         )
         hookenv.function_fail(str(e))
     else:
-        clear_flag("duplicity.failed_backup")
+        if action_name == "do-backup":
+            clear_flag("duplicity.failed_backup")
         if os.path.exists(error_file):
             os.remove(error_file)
 

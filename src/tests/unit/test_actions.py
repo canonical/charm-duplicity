@@ -1,5 +1,4 @@
 """Unit tests for charm actions."""
-
 from subprocess import CalledProcessError
 from unittest.mock import patch
 
@@ -32,6 +31,21 @@ class TestActions:
         actions.main(action_args)
         mock_do_backup.assert_called_with(action_args)
         mock_clear_flag.assert_called()
+        assert mock_remove.called == error_path_exists
+
+    @pytest.mark.parametrize("error_path_exists", [True, False])
+    @patch("actions.list_current_files")
+    @patch("actions.os.path.exists")
+    @patch("actions.os.remove")
+    def test_list_files_action_run_success(
+        self, mock_remove, mock_exists, mock_list_current_files, error_path_exists,
+    ):
+        """Verify list-current-files action."""
+        action_args = ["actions/list-current-files"]
+        mock_exists.return_value = error_path_exists
+        actions.ACTIONS["list-current-files"] = mock_list_current_files
+        actions.main(action_args)
+        mock_list_current_files.assert_called_with(action_args)
         assert mock_remove.called == error_path_exists
 
     @patch("actions.do_backup")
@@ -100,4 +114,19 @@ class TestDoBackupAction:
         expected_dict_input = dict(output=result.decode("utf-8"))
         actions.do_backup()
         mock_helper.do_backup.assert_called_once()
+        mock_hookenv.function_set.called_with(expected_dict_input)
+
+
+class TestListCurrentFilesAction:
+    """Verify list-current-files action."""
+
+    @patch("actions.helper")
+    @patch("actions.hookenv")
+    def test_list_current_files(self, mock_hookenv, mock_helper):
+        """Verify list-current-files action."""
+        result = "action_output".encode("utf-8")
+        mock_helper.list_current_files.return_value = result
+        expected_dict_input = dict(output=result.decode("utf-8"))
+        actions.list_current_files()
+        mock_helper.list_current_files.assert_called_once()
         mock_hookenv.function_set.called_with(expected_dict_input)

@@ -50,6 +50,11 @@ class DuplicityHelper:
     def list_files_cmd(self):
         """Juju action list-current-files handler."""
         cmd = ["duplicity", "list-current-files", self._backup_url()]
+        if self.charm_config.get("private_ssh_key"):
+            if self.charm_config.get("backend") == "rsync":
+                cmd.append('--rsync-options=-e "ssh -i /root/.ssh/duplicity_id_rsa"')
+            else:
+                cmd.append("--ssh-options=-oIdentityFile=/root/.ssh/duplicity_id_rsa")
         cmd.extend(self._additional_options())
         return cmd
 
@@ -237,13 +242,10 @@ class DuplicityHelper:
         :param: kwargs
         :type: dictionary of values that may be used instead of config values
         """
-        raise NotImplementedError()
-        # self._set_environment_vars()
-        # cmd = self.list_files_cmd
-        # try:
-        #     subprocess.check_call(cmd)
-        # except subprocess.CalledProcessError as e:
-        #     pass
+        self._set_environment_vars()
+        cmd = self.list_files_cmd
+        self.safe_log("Duplicity Command: {}".format(cmd))
+        return subprocess.check_output(cmd, stderr=subprocess.STDOUT)
 
     def restore(self):
         # TODO
