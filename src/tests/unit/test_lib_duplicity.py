@@ -34,6 +34,30 @@ class TestDuplicityHelper:
         assert expected_destination in command
 
     @pytest.mark.parametrize(
+        "backend,remote_backup_url,expected_destination",
+        [
+            ("scp", "some.host/backups", "scp://some.host/backups/unit-mock-0"),
+            ("rsync", "some.host/backups", "rsync://some.host/backups/unit-mock-0"),
+            ("ftp", "some.host/backups", "ftp://some.host/backups/unit-mock-0"),
+            ("sftp", "some.host/backups", "sftp://some.host/backups/unit-mock-0"),
+            ("s3", "some.host/backups", "s3://some.host/backups/unit-mock-0"),
+            ("file", "some.host/backups", "file://some.host/backups/unit-mock-0"),
+            ("else", "host", None),
+        ],
+    )
+    def test_list_current_files_cmd(
+        self, duplicity_helper, backend, remote_backup_url, expected_destination
+    ):
+        """Verify list-current-files command."""
+        duplicity_helper.charm_config["backend"] = backend
+        duplicity_helper.charm_config["remote_backup_url"] = remote_backup_url
+        command = duplicity_helper.backup_cmd
+        assert expected_destination in command
+        command = duplicity_helper.list_files_cmd
+        assert "duplicity" in command
+        assert expected_destination in command
+
+    @pytest.mark.parametrize(
         "user,password,expected_destination",
         [
             ("ubuntu", None, "scp://ubuntu@some.host/backups/unit-mock-0"),
