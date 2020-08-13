@@ -9,6 +9,6 @@ do-backup:
 #  description: |
 #    Verify restores to a temporary path and checks if the result matches the
 #    checksum saved during backup
-#list-current-files:
-#  description: |
-#    Lists the latest backed up files on the remote repository
+list-current-files:
+  description: |
+    Lists the latest backed up files on the remote repository
