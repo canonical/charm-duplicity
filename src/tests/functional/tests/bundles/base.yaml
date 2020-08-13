@@ -1,5 +1,3 @@
-series: bionic
-
 applications:
   ubuntu:
     charm: cs:ubuntu
@@ -22,7 +20,7 @@ applications:
 relations:
   - - ubuntu
     - duplicity
-  - - nrpe
-    - duplicity
+  - - duplicity
+    - nrpe
   - - nrpe
     - ubuntu

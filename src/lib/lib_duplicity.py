@@ -8,21 +8,21 @@ from urllib.parse import urlparse
 from charmhelpers.core import hookenv, templating
 
 
-BACKUP_CRON_FILE = '/etc/cron.d/periodic_backup'
-BACKUP_CRON_LOG_PATH = '/var/log/duplicity'
-ROOT_KNOWN_HOSTS_PATH = '/root/.ssh/known_hosts'
-PRIVATE_SSH_KEY_PATH = '/root/.ssh/duplicity_id_rsa'
+BACKUP_CRON_FILE = "/etc/cron.d/periodic_backup"
+BACKUP_CRON_LOG_PATH = "/var/log/duplicity"
+ROOT_KNOWN_HOSTS_PATH = "/root/.ssh/known_hosts"
+PRIVATE_SSH_KEY_PATH = "/root/.ssh/duplicity_id_rsa"
 
 
 def safe_remove_backup_cron():
     """Delete backup crontab."""
     if os.path.exists(BACKUP_CRON_FILE):
-        hookenv.log('Removing backup cron file.', level=hookenv.DEBUG)
+        hookenv.log("Removing backup cron file.", level=hookenv.DEBUG)
         os.remove(BACKUP_CRON_FILE)
-        hookenv.log('Backup cron file removed.', level=hookenv.DEBUG)
+        hookenv.log("Backup cron file removed.", level=hookenv.DEBUG)
 
 
-class DuplicityHelper():
+class DuplicityHelper:
     """Actual juju actions handler."""
 
     def __init__(self):
@@ -32,23 +32,24 @@ class DuplicityHelper():
     @property
     def backup_cmd(self):
         """Juju action do-backup handler."""
-        cmd = ['duplicity']
-        if self.charm_config.get('private_ssh_key'):
-            if self.charm_config.get('backend') == 'rsync':
+        cmd = ["duplicity"]
+        if self.charm_config.get("private_ssh_key"):
+            if self.charm_config.get("backend") == "rsync":
                 cmd.append('--rsync-options=-e "ssh -i /root/.ssh/duplicity_id_rsa"')
             else:
-                cmd.append('--ssh-options=-oIdentityFile=/root/.ssh/duplicity_id_rsa')
-        # later switch to cmd.append('full' if self.charm_config.get('full_backup') else 'incr')
+                cmd.append("--ssh-options=-oIdentityFile=/root/.ssh/duplicity_id_rsa")
+        # later switch to
+        # cmd.append('full' if self.charm_config.get('full_backup') else 'incr')
         # when full_backup implemented
-        cmd.append('full')
-        cmd.extend([self.charm_config.get('aux_backup_directory'), self._backup_url()])
+        cmd.append("full")
+        cmd.extend([self.charm_config.get("aux_backup_directory"), self._backup_url()])
         cmd.extend(self._additional_options())
         return cmd
 
     @property
     def list_files_cmd(self):
         """Juju action list-current-files handler."""
-        cmd = ['duplicity', 'list-current-files', self._backup_url()]
+        cmd = ["duplicity", "list-current-files", self._backup_url()]
         cmd.extend(self._additional_options())
         return cmd
 
@@ -83,8 +84,12 @@ class DuplicityHelper():
         else:
             return None
 
-        url = "{}://".format(backend) + url + "/{}".format(
-            hookenv.local_unit().replace("/", "-"))
+        url = (
+            "{}://".format(backend)
+            + url  # noqa: W503
+            + "/{}".format(hookenv.local_unit().replace("/", "-"))  # noqa: W503
+        )
+
         return url
 
     def _set_environment_vars(self):
@@ -96,11 +101,10 @@ class DuplicityHelper():
         """
         # Set the Aws Credentials. It doesnt matter if they are used or not
         os.environ["AWS_SECRET_ACCESS_KEY"] = self.charm_config.get(
-            "aws_secret_access_key")
-        os.environ["AWS_ACCESS_KEY_ID"] = self.charm_config.get(
-            "aws_access_key_id")
-        os.environ["PASSWORD"] = self.charm_config.get(
-            "encryption_passphrase")
+            "aws_secret_access_key"
+        )
+        os.environ["AWS_ACCESS_KEY_ID"] = self.charm_config.get("aws_access_key_id")
+        os.environ["PASSWORD"] = self.charm_config.get("encryption_passphrase")
 
     def _additional_options(self):
         """Additional options to add to the duplicity cmd.
@@ -115,8 +119,7 @@ class DuplicityHelper():
         if self.charm_config.get("disable_encryption"):
             cmd.append("--no-encryption")
         elif self.charm_config.get("gpg_public_key"):
-            cmd.append("--gpg-key={}".format(
-                self.charm_config.get("gpg_public_key")))
+            cmd.append("--gpg-key={}".format(self.charm_config.get("gpg_public_key")))
         return cmd
 
     def setup_backup_cron(self):
@@ -131,22 +134,22 @@ class DuplicityHelper():
 
     def _render_backup_cron(self):
         """Render backup cron."""
-        backup_frequency = self.charm_config.get('backup_frequency')
-        if backup_frequency in ['hourly', 'daily', 'weekly', 'monthly']:
-            backup_frequency = '@{}'.format(backup_frequency)
+        backup_frequency = self.charm_config.get("backup_frequency")
+        if backup_frequency in ["hourly", "daily", "weekly", "monthly"]:
+            backup_frequency = "@{}".format(backup_frequency)
         cron_ctx = dict(
             frequency=backup_frequency,
             unit_name=hookenv.local_unit(),
-            charm_dir=hookenv.charm_dir()
+            charm_dir=hookenv.charm_dir(),
         )
-        templating.render('periodic_backup', BACKUP_CRON_FILE, cron_ctx)
-        with open('/etc/cron.d/periodic_backup', 'a') as cron_file:
-            cron_file.write('\n')
+        templating.render("periodic_backup", BACKUP_CRON_FILE, cron_ctx)
+        with open("/etc/cron.d/periodic_backup", "a") as cron_file:
+            cron_file.write("\n")
 
     @staticmethod
     def update_known_host_file(known_host_key):
         """Update known host file."""
-        permissions = 'a+' if os.path.exists(ROOT_KNOWN_HOSTS_PATH) else 'w+'
+        permissions = "a+" if os.path.exists(ROOT_KNOWN_HOSTS_PATH) else "w+"
         with open(ROOT_KNOWN_HOSTS_PATH, permissions) as known_host_file:
             contents = known_host_file.read()
             if known_host_key not in contents:
@@ -161,15 +164,15 @@ class DuplicityHelper():
         self._set_environment_vars()
         cmd = self.backup_cmd
         self.safe_log("Duplicity Command: {}".format(cmd))
-        if self.charm_config.get('backend') == 'rsync':
+        if self.charm_config.get("backend") == "rsync":
             self.create_remote_dirs()
         return subprocess.check_output(cmd, stderr=subprocess.STDOUT)
 
     def safe_log(self, message, level=hookenv.INFO):
         """Replace password in the log with ***."""
-        password = self.charm_config.get('remote_password')
+        password = self.charm_config.get("remote_password")
         if password and password in message:
-            message = message.replace(password, '*****')
+            message = message.replace(password, "*****")
         hookenv.log(message=message, level=level)
 
     def create_remote_dirs(self):
@@ -185,19 +188,23 @@ class DuplicityHelper():
         from fabric import Connection
 
         parsed_url = urlparse(self._backup_url())
-        at_index = parsed_url.netloc.find('@')
+        at_index = parsed_url.netloc.find("@")
         if at_index:
-            host = parsed_url.netloc[at_index + 1:]
+            host = parsed_url.netloc[at_index + 1 :]  # noqa: E203
         else:
             host = parsed_url.netloc
         conn = Connection(host=host)
-        user = self.charm_config.get('remote_user')
-        ssh_key_exists = self.charm_config.get('private_ssh_key')
+        user = self.charm_config.get("remote_user")
+        ssh_key_exists = self.charm_config.get("private_ssh_key")
         if user:
             conn.user = user
         if ssh_key_exists:
             conn.connect_kwargs = dict(key_filename=PRIVATE_SSH_KEY_PATH)
-        conn.run('mkdir -p {}/{}'.format(parsed_url.path[1:], hookenv.local_unit().replace("/", "-")))
+        conn.run(
+            "mkdir -p {}/{}".format(
+                parsed_url.path[1:], hookenv.local_unit().replace("/", "-")
+            )
+        )
 
     def cleanup(self):
         # TODO
@@ -219,7 +226,8 @@ class DuplicityHelper():
         # duplicity collection-status <target_url>
         """Summarize the status of the backup repository.
 
-        List the status by printing the chains and sets found, and the number of volumes in each
+        List the status by printing the chains and sets found,
+        and the number of volumes in each
         """
         raise NotImplementedError()
 
