@@ -1,12 +1,15 @@
 #!/usr/bin/python3
-from unittest.mock import patch, call, mock_open, ANY
-
-import pytest
+"""Duplicity helper unit tests."""
+from unittest.mock import ANY, call, mock_open, patch
 
 import lib_duplicity
 
+import pytest
+
 
 class TestDuplicityHelper:
+    """This class defines duplicity helper unit tests."""
+
     @pytest.mark.parametrize(
         "backend,remote_backup_url,expected_destination",
         [
@@ -22,6 +25,7 @@ class TestDuplicityHelper:
     def test_backup_cmd(
         self, duplicity_helper, backend, remote_backup_url, expected_destination
     ):
+        """Verify backup command."""
         duplicity_helper.charm_config["backend"] = backend
         duplicity_helper.charm_config["remote_backup_url"] = remote_backup_url
         command = duplicity_helper.backup_cmd
@@ -43,6 +47,7 @@ class TestDuplicityHelper:
     def test_backup_cmd_user_password(
         self, duplicity_helper, user, password, expected_destination
     ):
+        """Verify backup command with user and password."""
         backend = "scp"
         remote_backup_url = "some.host/backups"
         duplicity_helper.charm_config["backend"] = backend
@@ -91,6 +96,7 @@ class TestDuplicityHelper:
         private_ssh_key,
         expected_options,
     ):
+        """Verify additional options of backup command."""
         duplicity_helper.charm_config["disable_encryption"] = disable_encryption
         duplicity_helper.charm_config["gpg_public_key"] = gpg_public_key
         duplicity_helper.charm_config["private_ssh_key"] = private_ssh_key
@@ -113,6 +119,7 @@ class TestDuplicityHelper:
         aws_access_key_id,
         encryption_passphrase,
     ):
+        """Verify do backup action."""
         duplicity_helper.charm_config["aws_secret_access_key"] = aws_secret_access_key
         duplicity_helper.charm_config["aws_access_key_id"] = aws_access_key_id
         duplicity_helper.charm_config["encryption_passphrase"] = encryption_passphrase
@@ -147,6 +154,7 @@ class TestDuplicityHelper:
         backup_frequency,
         expected_frequency,
     ):
+        """Verify setup backup cron job."""
         duplicity_helper.charm_config["backup_frequency"] = backup_frequency
         duplicity_helper.setup_backup_cron()
         args, _ = mock_templating.render.call_args
@@ -160,6 +168,7 @@ class TestDuplicityHelper:
     def test_setup_backup_cron_create_path(
         self, mock_open, mock_templating, mock_os, duplicity_helper, exists
     ):
+        """Verify setup_backup_cron create dir."""
         mock_os.path.exists.return_value = exists
         duplicity_helper.setup_backup_cron()
         assert mock_os.mkdir.called is not exists
@@ -178,6 +187,7 @@ class TestDuplicityHelper:
     def test_update_known_host_file(
         self, mock_print, mock_os, key_exists, path_exists, permission, written
     ):
+        """Verify updating knwon host file."""
         known_host_key = "known_host_key"
         read_data = known_host_key if key_exists else "other"
         mock_os.path.exists.return_value = path_exists
@@ -188,14 +198,18 @@ class TestDuplicityHelper:
 
 
 class TestLibDuplicity:
+    """Test functions defined in lib_duplicity."""
+
     @patch("lib_duplicity.os")
     def test_safe_remove_backup_cron_path_exists(self, mock_os):
+        """Verify removing backup cron path if exists."""
         mock_os.path.exists.return_value = True
         lib_duplicity.safe_remove_backup_cron()
         mock_os.remove.assert_called_once()
 
     @patch("lib_duplicity.os")
     def test_safe_remove_backup_cron_no_exist(self, mock_os):
+        """Verify removing backup cron path if it doesn't exist."""
         mock_os.path.exists.return_value = False
         lib_duplicity.safe_remove_backup_cron()
         mock_os.remove.assert_not_called()

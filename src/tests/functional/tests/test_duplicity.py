@@ -1,36 +1,41 @@
-import unittest
+"""Zaza fun tests."""
 import asyncio
-import concurrent.futures
 import base64
-
-import zaza.model
+import concurrent.futures
+import unittest
 
 from tests import utils
 from tests.configure import ubuntu_backup_directory_source, ubuntu_user_pass
 
+import zaza.model
+
 
 def _run(coro):
-    """ A wrapper function to allow running of async functions in unittest.TestCase """
+    """Return result of an async function."""
     return asyncio.get_event_loop().run_until_complete(coro)
 
 
 class BaseDuplicityTest(unittest.TestCase):
-    """ Base class for Duplicity charm tests. """
+    """Base class for Duplicity charm tests."""
 
     @classmethod
     def setUpClass(cls):
-        """ Run setup for Duplicity tests. """
+        """Run setup for Duplicity tests."""
         cls.model_name = zaza.model.get_juju_model()
         cls.application_name = "duplicity"
 
 
 class DuplicityBackupCronTest(BaseDuplicityTest):
+    """Base class for Duplicity Backup cron job charm tests."""
+
     @classmethod
     def setUpClass(cls):
+        """Run setup for Duplicity Backup cron job charm tests."""
         super().setUpClass()
 
     @utils.config_restore("duplicity")
     def test_cron_creation(self):
+        """Verify cron job creation."""
         options = ["daily", "weekly", "monthly"]
         for option in options:
             new_config = dict(backup_frequency=option)
@@ -50,6 +55,7 @@ class DuplicityBackupCronTest(BaseDuplicityTest):
 
     @utils.config_restore("duplicity")
     def test_cron_creation_cron_string(self):
+        """Verify cron job creation."""
         cron_string = "* * * * *"
         new_config = dict(backup_frequency=cron_string)
         zaza.model.set_application_config(self.application_name, new_config)
@@ -68,6 +74,7 @@ class DuplicityBackupCronTest(BaseDuplicityTest):
 
     @utils.config_restore("duplicity")
     def test_cron_invalid_cron_string(self):
+        """Verify cron job creation with invalid frequency."""
         cron_string = "* * * *"
         new_config = dict(backup_frequency=cron_string)
         zaza.model.set_application_config(self.application_name, new_config)
@@ -86,6 +93,7 @@ class DuplicityBackupCronTest(BaseDuplicityTest):
 
     @utils.config_restore("duplicity")
     def test_no_cron(self):
+        """Verify manual or invalid cron job frequency."""
         options = ["auto", "manual"]
         for option in options:
             new_config = dict(backup_frequency=option)
@@ -105,12 +113,16 @@ class DuplicityBackupCronTest(BaseDuplicityTest):
 
 
 class DuplicityEncryptionValidationTest(BaseDuplicityTest):
+    """Verify encryption validation."""
+
     @classmethod
     def setUpClass(cls):
+        """Set up encryption validation tests."""
         super().setUpClass()
 
     @utils.config_restore("duplicity")
     def test_encryption_true_no_key_no_passphrase_blocks(self):
+        """Verify unit is blocked with no passphrase or key."""
         new_config = dict(
             encryption_passphrase="", gpg_public_key="", disable_encryption="False"
         )
@@ -136,6 +148,7 @@ class DuplicityEncryptionValidationTest(BaseDuplicityTest):
 
     @utils.config_restore("duplicity")
     def test_encryption_true_with_key(self):
+        """Verify encryption with a valid gpg key."""
         zaza.model.set_application_config(
             self.application_name, dict(disable_encryption="False"), self.model_name
         )
@@ -162,6 +175,7 @@ class DuplicityEncryptionValidationTest(BaseDuplicityTest):
 
     @utils.config_restore("duplicity")
     def test_encryption_true_with_passphrase(self):
+        """Verify encryption with a valid passphrase."""
         zaza.model.set_application_config(
             self.application_name, dict(disable_encryption="False"), self.model_name
         )
@@ -188,8 +202,11 @@ class DuplicityEncryptionValidationTest(BaseDuplicityTest):
 
 
 class DuplicityBackupCommandTest(BaseDuplicityTest):
+    """Verify do-backup command."""
+
     @classmethod
     def setUpClass(cls):
+        """Set up do-backup command tests."""
         super().setUpClass()
         cls.backup_host = zaza.model.get_units("backup-host")[0]
         cls.duplicity_unit = zaza.model.get_units("duplicity")[0]
@@ -201,6 +218,7 @@ class DuplicityBackupCommandTest(BaseDuplicityTest):
         cls.ssh_priv_key = cls.get_ssh_priv_key()
 
     def get_config(self, **kwargs):
+        """Return app config."""
         base_config = dict(
             remote_backup_url=self.backup_host_ip,
             aux_backup_directory=ubuntu_backup_directory_source,
@@ -213,6 +231,7 @@ class DuplicityBackupCommandTest(BaseDuplicityTest):
 
     @staticmethod
     def get_ssh_priv_key():
+        """Return ssh private key."""
         with open("./tests/resources/testing_id_rsa", "rb") as f:
             ssh_private_key = f.read()
         encoded_ssh_private_key = base64.b64encode(ssh_private_key)
@@ -220,6 +239,7 @@ class DuplicityBackupCommandTest(BaseDuplicityTest):
 
     @utils.config_restore("duplicity")
     def test_scp_full_do_backup_action(self):
+        """Verify do-backup action with scp."""
         additional_config = dict(backend="scp")
         new_config = self.get_config(**additional_config)
         utils.set_config_and_wait(self.application_name, new_config)
@@ -229,6 +249,7 @@ class DuplicityBackupCommandTest(BaseDuplicityTest):
 
     @utils.config_restore("duplicity")
     def test_file_full_do_backup_action(self):
+        """Verify do-backup action with ftp."""
         additional_config = dict(
             backend="file", remote_backup_url="/home/ubuntu/test-backups"
         )
@@ -240,6 +261,7 @@ class DuplicityBackupCommandTest(BaseDuplicityTest):
 
     @utils.config_restore("duplicity")
     def test_scp_full_ssh_key_auth_backup_action(self):
+        """Verify do-backup action with scp and private key."""
         additional_config = dict(
             backend="scp", private_ssh_key=self.ssh_priv_key, remote_password=""
         )
@@ -251,6 +273,7 @@ class DuplicityBackupCommandTest(BaseDuplicityTest):
 
     @utils.config_restore("duplicity")
     def test_rsync_full_ssh_key_auth_backup_action(self):
+        """Verify do-backup action with rsync and private key."""
         additional_config = dict(
             backend="rsync", private_ssh_key=self.ssh_priv_key, remote_password=""
         )
@@ -262,6 +285,7 @@ class DuplicityBackupCommandTest(BaseDuplicityTest):
 
     @utils.config_restore("duplicity")
     def test_sftp_full_do_backup(self):
+        """Verify do-backup action with sftp and password."""
         additional_config = dict(backend="sftp")
         new_config = self.get_config(**additional_config)
         utils.set_config_and_wait(self.application_name, new_config)
@@ -271,6 +295,7 @@ class DuplicityBackupCommandTest(BaseDuplicityTest):
 
     @utils.config_restore("duplicity")
     def test_sftp_full_ssh_key_do_backup(self):
+        """Verify do-backup action with sftp with private key."""
         additional_config = dict(
             backend="sftp", private_ssh_key=self.ssh_priv_key, remote_password=""
         )
@@ -282,6 +307,7 @@ class DuplicityBackupCommandTest(BaseDuplicityTest):
 
     @utils.config_restore("duplicity")
     def test_ftp_full_do_backup(self):
+        """Verify do-backup action with ftp."""
         additional_config = dict(backend="ftp")
         new_config = self.get_config(**additional_config)
         utils.set_config_and_wait(self.application_name, new_config)

@@ -1,7 +1,9 @@
-from unittest.mock import patch, call, ANY, mock_open, MagicMock
+"""Unit tests for reactive hooks."""
+from unittest.mock import ANY, MagicMock, call, mock_open, patch
+
+from croniter import CroniterBadCronError, CroniterBadDateError, CroniterNotAlphaError
 
 import pytest
-from croniter import CroniterBadCronError, CroniterBadDateError, CroniterNotAlphaError
 
 with patch("lib_duplicity.DuplicityHelper") as helper_mock:
     with patch("charmhelpers.core.hookenv") as hookenv_mock:
@@ -12,6 +14,7 @@ with patch("lib_duplicity.DuplicityHelper") as helper_mock:
 @patch("duplicity.fetch")
 @patch("duplicity.set_flag")
 def test_install_duplicity(mock_set_flag, mock_fetch, mock_hookenv):
+    """Verify install hook."""
     hookenv_calls = [call("maintenance", "Installing duplicity"), call("active", "")]
     fetch_calls = [
         call(x) for x in ["duplicity", "python-paramiko", "python-boto", "lftp"]
@@ -23,6 +26,8 @@ def test_install_duplicity(mock_set_flag, mock_fetch, mock_hookenv):
 
 
 class TestValidateBackend:
+    """Verify validation of duplicity backend."""
+
     @pytest.mark.parametrize("backend,", ["ftp", "file"])
     @patch("duplicity.set_flag")
     @patch("duplicity.clear_flag")
@@ -30,6 +35,7 @@ class TestValidateBackend:
     def test_validate_backend_success_not_secured(
         self, mock_config, mock_clear_flag, mock_set_flag, backend
     ):
+        """Verify valid not secured backend."""
         mock_config.get.return_value = backend
         duplicity.validate_backend()
         mock_clear_flag.assert_called_with("duplicity.invalid_backend")
@@ -57,6 +63,7 @@ class TestValidateBackend:
         remote_password,
         ssh_key,
     ):
+        """Verify valid secured backend."""
         known_host_key = "host_key"
         if backend == "rsync":
             side_effects = [backend, ssh_key, known_host_key, remote_password, ssh_key]
@@ -73,6 +80,7 @@ class TestValidateBackend:
     def test_invalid_backend_secured_no_private_ssh_key_rsync(
         self, mock_config, mock_clear_flag, mock_set_flag
     ):
+        """Verify invalid backend."""
         backend = "rsync"
         known_host_key = "host_key"
         remote_password = "remote-pass"
@@ -94,6 +102,7 @@ class TestValidateBackend:
     def test_invalid_backend_secured_no_host_key(
         self, mock_config, mock_clear_flag, mock_set_flag, backend
     ):
+        """Verify invalid backend."""
         if backend == "rsync":
             mock_config.get.side_effect = [backend, "ssk_key", None, None, "ssh_key"]
         else:
@@ -111,6 +120,7 @@ class TestValidateBackend:
     def test_validate_backend_success_s3(
         self, mock_config, mock_clear_flag, mock_set_flag
     ):
+        """Verify valid s3 backend."""
         backend = "s3"
         mock_config.get.side_effect = [backend, "aws_id", "aws_secret"]
         expected_calls = [
@@ -130,6 +140,7 @@ class TestValidateBackend:
     def test_invalid_backend_s3(
         self, mock_config, mock_clear_flag, mock_set_flag, key_id, secret_key
     ):
+        """Verify invalid s3 backend."""
         backend = "s3"
         side_effects = [backend, key_id, secret_key]
         mock_config.get.side_effect = side_effects
@@ -143,6 +154,7 @@ class TestValidateBackend:
     def test_invalid_backend_bad_backend(
         self, mock_config, mock_clear_flag, mock_set_flag
     ):
+        """Verify invalid s3 backend."""
         backend = "bad_backend"
         mock_config.get.return_value = backend
         duplicity.validate_backend()
@@ -156,6 +168,7 @@ class TestValidateBackend:
 @patch("duplicity.config")
 @patch("duplicity.os")
 def test_create_aux_backup_directory(mock_os, mock_config, backup_dir, path_exists):
+    """Verify backup directory creation."""
     mock_config.get.return_value = backup_dir
     mock_os.path.exists.return_value = path_exists
     duplicity.create_aux_backup_directory()
@@ -166,6 +179,8 @@ def test_create_aux_backup_directory(mock_os, mock_config, backup_dir, path_exis
 
 
 class TestValidateCronFrequency:
+    """Verify validation of cron frequency."""
+
     @pytest.mark.parametrize(
         "frequency,create_cron",
         [
@@ -182,6 +197,7 @@ class TestValidateCronFrequency:
     def test_valid_cron_frequency(
         self, mock_config, mock_set_flag, mock_clear_flag, frequency, create_cron
     ):
+        """Verify valid cron frequency."""
         set_flag_arg = (
             "duplicity.create_backup_cron"
             if create_cron
@@ -200,6 +216,7 @@ class TestValidateCronFrequency:
     def test_valid_cron_string(
         self, mock_config, mock_set_flag, mock_clear_flag, mock_croniter
     ):
+        """Verify valid cron frequency."""
         valid_cron_string = "* * * * *"
         mock_config.get.return_value = valid_cron_string
         calls = [call("duplicity.create_backup_cron")]
@@ -219,6 +236,7 @@ class TestValidateCronFrequency:
     def test_invalid_cron_string(
         self, mock_config, mock_set_flag, mock_clear_flag, mock_croniter, raise_error
     ):
+        """Verify invalid cron frequency."""
         invalid_cron_string = "* * * *"
         mock_config.get.return_value = invalid_cron_string
         mock_croniter.side_effect = raise_error
@@ -229,10 +247,13 @@ class TestValidateCronFrequency:
 
 
 class TestUpdateKnownHostKey:
+    """Verify updating known host key."""
+
     @patch("duplicity.helper")
     @patch("duplicity.hookenv")
     @patch("duplicity.config")
     def test_update_known_host_key_set(self, mock_config, mock_hookenv, mock_helper):
+        """Verify setting known host key."""
         host_key = "somekey"
         mock_config.get.return_value = host_key
         duplicity.update_known_host_key()
@@ -244,6 +265,7 @@ class TestUpdateKnownHostKey:
     @patch("duplicity.helper")
     @patch("duplicity.config")
     def test_update_known_host_key_unset(self, mock_config, mock_helper):
+        """Verify unsetting known host key."""
         mock_config.get.return_value = ""
         duplicity.update_known_host_key()
         mock_helper.update_known_host_file.assert_not_called()
@@ -258,6 +280,7 @@ class TestUpdateKnownHostKey:
 def test_check_remote_backup_url(
     mock_config, mock_set_flag, mock_clear_flag, remote_backup_url, is_valid
 ):
+    """Verify remote backup url."""
     mock_config.get.return_value = remote_backup_url
     duplicity.check_remote_backup_url()
     if is_valid:
@@ -287,6 +310,7 @@ def test_validate_encryption_method(
     disable_encryption,
     valid,
 ):
+    """Verify encryption method."""
     mock_config.get.side_effect = [encryption_passphrase, gpg_key, disable_encryption]
     duplicity.validate_encryption_method()
     if valid:
@@ -296,8 +320,11 @@ def test_validate_encryption_method(
 
 
 class TestCheckStatus:
+    """Verify duplicity check status."""
+
     @patch("duplicity.hookenv")
     def test_check_status(self, mock_hookenv):
+        """Verify duplicity check status."""
         duplicity.check_status()
         mock_hookenv.atexit.assert_called_with(duplicity.assess_status)
 
@@ -352,6 +379,7 @@ class TestCheckStatus:
     def test_blocked_assess_status(
         self, mock_config, mock_hookenv, mock_is_flag_set, invalid_flag, message, index
     ):
+        """Verify duplicity check status when unit is blocked."""
         side_effects = [False for _ in range(index)] + [True]
         mock_is_flag_set.side_effect = side_effects
         some_val = "some_val"
@@ -364,6 +392,7 @@ class TestCheckStatus:
     @patch("duplicity.is_flag_set")
     @patch("duplicity.hookenv")
     def test_good_assess_status(self, mock_hookenv, mock_is_flag_set):
+        """Verify duplicity check status when unit is active."""
         mock_is_flag_set.return_value = False
         duplicity.assess_status()
         mock_hookenv.status_set.assert_has_calls(calls=[call("active", "Ready")])
@@ -373,6 +402,7 @@ class TestCheckStatus:
 @patch("duplicity.clear_flag")
 @patch("duplicity.helper")
 def test_create_backup_cron(mock_helper, mock_clear_flag, mock_hookenv):
+    """Verify creation cron job."""
     hookenv_calls = [
         call("maintenance", "Rendering duplicity crontab"),
         call("active", "Rendered duplicity crontab"),
@@ -389,12 +419,15 @@ def test_create_backup_cron(mock_helper, mock_clear_flag, mock_hookenv):
 def test_remove_backup_cron(
     mock_clear_flag, mock_safe_remove_backup_cron, mock_hookenv
 ):
+    """Verify removing cron job."""
     duplicity.remove_backup_cron()
     mock_safe_remove_backup_cron.assert_called_once()
     mock_clear_flag.assert_called_with("duplicity.remove_backup_cron")
 
 
 class TestUpdatePrivateSshKey:
+    """Verify updating private ssh key."""
+
     @patch("os.chmod")
     @patch("duplicity.clear_flag")
     @patch("duplicity.base64")
@@ -402,6 +435,7 @@ class TestUpdatePrivateSshKey:
     def test_update_key_success(
         self, mock_config, mock_base64, mock_clear_flag, os_chmod
     ):
+        """Verify updating key is successful."""
         private_key = "a_key"
         decoded_key = "a_decoded_key"
         mock_config.get.return_value = private_key
@@ -422,6 +456,7 @@ class TestUpdatePrivateSshKey:
     def test_update_key_no_key(
         self, mock_config, mock_os, mock_clear_flag, path_exists
     ):
+        """Verify updating key fails."""
         mock_config.get.return_value = ""
         mock_os.path.exists.return_value = path_exists
         duplicity.update_private_ssh_key()
@@ -432,6 +467,7 @@ class TestUpdatePrivateSshKey:
     @patch("duplicity.set_flag")
     @patch("duplicity.config")
     def test_update_key_fail(self, mock_config, mock_set_flag, mock_clear_flag):
+        """Verify updating key fails."""
         mock_config.get.return_value = "invalid_key"
         duplicity.update_private_ssh_key()
         mock_set_flag.assert_called_with("duplicity.invalid_private_ssh_key")
@@ -441,6 +477,7 @@ class TestUpdatePrivateSshKey:
 @patch("duplicity.set_flag")
 @patch("duplicity.render_checks")
 def test_initial_nrpe_config(mock_render_checks, mock_set_flag):
+    """Verify nrpe checks rendering is called."""
     duplicity.initial_nrpe_config()
     mock_set_flag.assert_called_with("nrpe-external-master.initial-config")
     mock_render_checks.assert_called_once()
@@ -453,8 +490,9 @@ def test_initial_nrpe_config(mock_render_checks, mock_set_flag):
 @patch("duplicity.os")
 @patch("duplicity.hookenv")
 def test_render_checks(
-    mock_hookenv, mock_os, mock_host, mock_NRPE, mock_set_flag, plugins_dir_path_exists
+    mock_hookenv, mock_os, mock_host, nrpe, mock_set_flag, plugins_dir_path_exists
 ):
+    """Verify nrpe checks are rendered correctly."""
     charm_dir = "some_dir"
     charm_plugin_dir = "charm_plugin_dir"
     check_command = "check_command"
@@ -466,7 +504,7 @@ def test_render_checks(
         call(duplicity.PLUGINS_DIR, "check_backup_status.py"),
     ]
     mock_nrpe = MagicMock()
-    mock_NRPE.return_value = mock_nrpe
+    nrpe.return_value = mock_nrpe
     duplicity.render_checks()
     mock_os.path.join.assert_has_calls(os_join_calls)
     assert mock_os.makedirs.called != plugins_dir_path_exists
@@ -480,9 +518,10 @@ def test_render_checks(
 
 @patch("duplicity.NRPE")
 @patch("duplicity.clear_flag")
-def test_remove_nrpe_checks(mock_clear_flag, mock_NRPE):
+def test_remove_nrpe_checks(mock_clear_flag, nrpe):
+    """Verify removing nrpe checks."""
     mock_nrpe = MagicMock()
-    mock_NRPE.return_value = mock_nrpe
+    nrpe.return_value = mock_nrpe
     duplicity.remove_nrpe_checks()
     mock_nrpe.remove_check.assert_called_with(shortname="backups")
     mock_clear_flag.assert_called_with("nrpe-external-master.configured")
@@ -490,5 +529,6 @@ def test_remove_nrpe_checks(mock_clear_flag, mock_NRPE):
 
 @patch("duplicity.safe_remove_backup_cron")
 def test_stop(mock_safe_remove_backup_cron):
+    """Verify stop hook."""
     duplicity.stop()
     mock_safe_remove_backup_cron.assert_called_once()
