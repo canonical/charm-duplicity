@@ -38,11 +38,7 @@ class TestActions:
     @patch("actions.os.path.exists")
     @patch("actions.os.remove")
     def test_list_files_action_run_success(
-        self,
-        mock_remove,
-        mock_exists,
-        mock_list_current_files,
-        error_path_exists,
+        self, mock_remove, mock_exists, mock_list_current_files, error_path_exists,
     ):
         """Verify list-current-files action."""
         action_args = ["actions/list-current-files"]
