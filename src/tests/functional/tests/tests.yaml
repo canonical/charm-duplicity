@@ -20,3 +20,7 @@ dev_bundles:
   - bionic
 smoke_bundles:
   - bionic
+target_deploy_status:
+  nrpe:
+    workload-status: blocked
+    workload-status-message: Nagios server not configured or related
