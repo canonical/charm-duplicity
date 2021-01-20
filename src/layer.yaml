@@ -17,6 +17,7 @@ options:
     include_system_packages: true
   venv:
     packages:
+      - "-U pip"  # https://github.com/omnivector-solutions/layer-venv/issues/6
       - "fabric"
     env_name: duplicity
 repo: https://git.launchpad.net/charm-duplicity
