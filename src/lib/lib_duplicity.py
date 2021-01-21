@@ -124,7 +124,9 @@ class DuplicityHelper:
         if self.charm_config.get("disable_encryption"):
             cmd.append("--no-encryption")
         elif self.charm_config.get("gpg_public_key"):
-            cmd.append("--gpg-key={}".format(self.charm_config.get("gpg_public_key")))
+            cmd.append(
+                "--encrypt-key={}".format(self.charm_config.get("gpg_public_key"))
+            )
         return cmd
 
     def setup_backup_cron(self):

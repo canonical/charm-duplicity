@@ -85,7 +85,7 @@ class TestDuplicityHelper:
         "disable_encryption,gpg_public_key,private_ssh_key,expected_options",
         [
             (True, None, None, ["--no-encryption"]),
-            (None, "GPGK3Y", None, ["--gpg-key=GPGK3Y"]),
+            (None, "GPGK3Y", None, ["--encrypt-key=GPGK3Y"]),
             (
                 None,
                 None,
@@ -106,7 +106,7 @@ class TestDuplicityHelper:
                 "GPGK3Y",
                 "mykey",
                 [
-                    "--gpg-key=GPGK3Y",
+                    "--encrypt-key=GPGK3Y",
                     "--ssh-options=-oIdentityFile=/root/.ssh/duplicity_id_rsa",
                 ],
             ),
