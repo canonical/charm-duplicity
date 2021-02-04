@@ -1,8 +1,6 @@
 """Duplicity juju actions."""
-import glob
 import os
 import subprocess
-import sys
 from urllib.parse import urlparse
 
 from charmhelpers.core import hookenv, templating
