@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 
 from charmhelpers.core import hookenv, templating
 
+from fabric import Connection
 
 BACKUP_CRON_FILE = "/etc/cron.d/periodic_backup"
 BACKUP_CRON_LOG_PATH = "/var/log/duplicity"
@@ -182,16 +183,6 @@ class DuplicityHelper:
 
     def create_remote_dirs(self):
         """Create remote dirs when using rsync backend."""
-        # fabric can't be installed using wheelhouse. It is installed using layer:venv
-        # add to sys.path the juju_venv and import inside the method to be sure the venv
-        # is ready.
-        # https://github.com/juju/charm-tools/issues/471
-        # https://github.com/juju-solutions/layer-basic/issues/154
-        sys.path.insert(
-            1, glob.glob("/opt/juju_venvs/duplicity/lib/python*/site-packages")[0]
-        )
-        from fabric import Connection
-
         parsed_url = urlparse(self._backup_url())
         at_index = parsed_url.netloc.find("@")
         if at_index:
