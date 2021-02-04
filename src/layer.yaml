@@ -6,18 +6,15 @@ exclude:
 includes:
   - layer:basic
   - layer:apt
-  - layer:venv
   - layer:nagios
   - interface:juju-info
 options:
   basic:
     packages:
       - 'libffi-dev' # Needed to install cryptography, fabric dependency.
+      - 'libssl-dev' # same as above
+    python_packages:
+      - fabric
     use_venv: true
     include_system_packages: true
-  venv:
-    packages:
-      - "-U pip"  # https://github.com/omnivector-solutions/layer-venv/issues/6
-      - "fabric"
-    env_name: duplicity
 repo: https://git.launchpad.net/charm-duplicity
