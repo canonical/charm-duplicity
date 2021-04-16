@@ -24,3 +24,7 @@ target_deploy_status:
   nrpe:
     workload-status: blocked
     workload-status-message: Nagios server not configured or related
+  ubuntu:
+    workload-status-message: ''
+  backup-host:
+    workload-status-message: ''
