@@ -15,6 +15,7 @@ options:
       - 'libssl-dev' # same as above
     python_packages:
       - fabric
+      - 'cryptography>=3.2,<3.3'
     use_venv: true
     include_system_packages: true
 repo: https://git.launchpad.net/charm-duplicity
