@@ -3,11 +3,11 @@
 ## Overview
 
 The Duplicity charm provides functionality for both manual and automatic backups for a deployed application.
-As the name suggests, it utilizes the Duplicity tool and acts as an easy-to-use-and-configure interface for 
+As the name suggests, it utilizes the Duplicity tool and acts as an easy-to-use-and-configure interface for
 operators to set up backups.
 
-After relating the [Duplicity](http://duplicity.nongnu.org/) to another charm, you can backup a directory to 
-either the local unit, a remote host, or even an AWS S3 bucket. All it takes is a bit of configuration and 
+After relating the [Duplicity](http://duplicity.nongnu.org/) to another charm, you can backup a directory to
+either the local unit, a remote host, or even an AWS S3 bucket. All it takes is a bit of configuration and
 remote destination preparation.
 
 The following backends are currently supported:
@@ -60,7 +60,7 @@ password authentication.
 
 ### S3 Backups
 
-The following will backup to S3 buckets. This configuration requires an IAM account 
+The following will backup to S3 buckets. This configuration requires an IAM account
 access and secret key to be passed into the config.
 
 ```
@@ -106,7 +106,7 @@ Adding NRPE checks allows for alerting when a periodic backup fails to complete.
 
 ```bash
 juju deploy nrpe
-juju add-relation nrpe ubuntu       # required on host 
+juju add-relation nrpe ubuntu       # required on host
 juju add-relation nrpe duplicity
 ```
 
