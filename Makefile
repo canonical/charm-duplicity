@@ -10,6 +10,9 @@ endif
 ifndef CHARM_INTERFACES_DIR
 	CHARM_INTERFACES_DIR=${PROJECTPATH}/interfaces
 endif
+ifdef CONTAINER
+	BUILD_ARGS="--destructive-mode"
+endif
 METADATA_FILE="src/metadata.yaml"
 CHARM_NAME=$(shell cat ${PROJECTPATH}/${METADATA_FILE} | grep -E "^name:" | awk '{print $$2}')
 
@@ -35,20 +38,22 @@ clean:
 	@git clean -ffXd -e '!.idea'
 	@echo "Cleaning existing build"
 	@rm -rf ${CHARM_BUILD_DIR}/${CHARM_NAME}
+	@charmcraft clean
+	@rm -rf ${PROJECTPATH}/${CHARM_NAME}.charm
 
 submodules:
-	@echo "Cloning submodules"
 	@git submodule update --init --recursive
 
 submodules-update:
-	@echo "Pulling latest updates for submodules"
 	@git submodule update --init --recursive --remote --merge
 
-build:
+build: clean submodules-update
 	@echo "Building charm to directory ${CHARM_BUILD_DIR}/${CHARM_NAME}"
 	@-git rev-parse --abbrev-ref HEAD > ./src/repo-info
-	@CHARM_LAYERS_DIR=${CHARM_LAYERS_DIR} CHARM_INTERFACES_DIR=${CHARM_INTERFACES_DIR} \
-		TERM=linux CHARM_BUILD_DIR=${CHARM_BUILD_DIR} charm build src/
+	@charmcraft -v pack ${BUILD_ARGS}
+	@bash -c ./rename.sh
+	@mkdir -p ${CHARM_BUILD_DIR}/${CHARM_NAME}
+	@unzip ${PROJECTPATH}/${CHARM_NAME}.charm -d ${CHARM_BUILD_DIR}/${CHARM_NAME}
 
 release: clean build
 	@echo "Charm is built at ${CHARM_BUILD_DIR}/${CHARM_NAME}"
@@ -71,7 +76,7 @@ unittests:
 
 functional: build
 	@echo "Executing functional tests in ${CHARM_BUILD_DIR}"
-	@cd src && CHARM_BUILD_DIR=${CHARM_BUILD_DIR} tox -e func
+	@cd src && CHARM_LOCATION=${PROJECTPATH} tox -e func
 
 test: lint proof unittests functional
 	@echo "Tests completed for charm ${CHARM_NAME}."
