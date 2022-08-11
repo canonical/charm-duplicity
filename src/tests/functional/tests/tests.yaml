@@ -15,6 +15,7 @@ gate_bundles:
   - xenial
   - bionic
   - focal
+  - jammy
 dev_bundles:
   - xenial
   - bionic
