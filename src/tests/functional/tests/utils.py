@@ -55,6 +55,9 @@ def set_config_and_wait(application_name, config, model_name=None, delay=1):
         application_name=application_name, configuration=config, model_name=model_name
     )
     zaza.model.block_until_all_units_idle()
+    # Add a short delay to allow the operation to settle. This is a temporary
+    # work around to address the issue in functional test:
+    # https://bugs.launchpad.net/charm-duplicity/+bug/1985045
     sleep(delay)
 
 
