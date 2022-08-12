@@ -34,9 +34,13 @@ class DuplicityHelper:
         cmd = ["duplicity"]
         if self.charm_config.get("private_ssh_key"):
             if self.charm_config.get("backend") == "rsync":
-                cmd.append('--rsync-options=-e "ssh -i /root/.ssh/duplicity_id_rsa"')
+                cmd.append(
+                    '--rsync-options=-e "ssh -i {}"'.format(PRIVATE_SSH_KEY_PATH)
+                )
             else:
-                cmd.append("--ssh-options=-oIdentityFile=/root/.ssh/duplicity_id_rsa")
+                cmd.append(
+                    "--ssh-options=-oIdentityFile={}".format(PRIVATE_SSH_KEY_PATH)
+                )
         # later switch to
         # cmd.append('full' if self.charm_config.get('full_backup') else 'incr')
         # when full_backup implemented
@@ -51,9 +55,13 @@ class DuplicityHelper:
         cmd = ["duplicity", "list-current-files", self._backup_url()]
         if self.charm_config.get("private_ssh_key"):
             if self.charm_config.get("backend") == "rsync":
-                cmd.append('--rsync-options=-e "ssh -i /root/.ssh/duplicity_id_rsa"')
+                cmd.append(
+                    '--rsync-options=-e "ssh -i {}"'.format(PRIVATE_SSH_KEY_PATH)
+                )
             else:
-                cmd.append("--ssh-options=-oIdentityFile=/root/.ssh/duplicity_id_rsa")
+                cmd.append(
+                    "--ssh-options=-oIdentityFile={}".format(PRIVATE_SSH_KEY_PATH)
+                )
         cmd.extend(self._additional_options())
         return cmd
 

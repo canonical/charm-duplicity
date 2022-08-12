@@ -13,10 +13,7 @@ tags:
   # https://jujucharms.com/docs/stable/authors-charm-metadata
   - backup
 subordinate: true
-series:
-  - focal
-  - bionic
-  - xenial
+series: []
 provides:
   nrpe-external-master:
     interface: nrpe-external-master
