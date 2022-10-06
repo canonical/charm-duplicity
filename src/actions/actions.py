@@ -31,7 +31,34 @@ def list_current_files(*args):
     hookenv.function_set(dict(output=output.decode("utf-8")))
 
 
-ACTIONS = {"do-backup": do_backup, "list-current-files": list_current_files}
+def remove_older_than(*args):
+    """remove-older-than action."""
+    time = hookenv.action_get("time")
+    output = helper.remove_older_than(time=time)
+    hookenv.function_set(dict(output=output.decode("utf-8")))
+
+
+def remove_all_but_n_full(*args):
+    """remove-all-but-n-full action."""
+    count = hookenv.action_get("count")
+    output = helper.remove_all_but_n_full(count=count)
+    hookenv.function_set(dict(output=output.decode("utf-8")))
+
+
+def remove_all_inc_of_but_n_full(*args):
+    """remove-all-inc-of-but-n-full action."""
+    count = hookenv.action_get("count")
+    output = helper.remove_all_inc_of_but_n_full(count=count)
+    hookenv.function_set(dict(output=output.decode("utf-8")))
+
+
+ACTIONS = {
+    "do-backup": do_backup,
+    "list-current-files": list_current_files,
+    "remove-older-than": remove_older_than,
+    "remove-all-but-n-full": remove_all_but_n_full,
+    "remove-all-inc-of-but-n-full": remove_all_inc_of_but_n_full,
+}
 
 
 def main(args):
@@ -53,7 +80,7 @@ def main(args):
         hookenv.function_fail(err_msg)
     except Exception as e:
         hookenv.log(
-            "do-backup action failed: {}\n{}".format(e, traceback.print_exc()),
+            "{} action failed: {}\n{}".format(action_name, e, traceback.print_exc()),
             level=hookenv.ERROR,
         )
         hookenv.function_fail(str(e))

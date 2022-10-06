@@ -110,17 +110,25 @@ juju add-relation nrpe ubuntu       # required on host
 juju add-relation nrpe duplicity
 ```
 
+### Cleaning up backups
+
+Deletion commands such as `remove-older-than`, `remove-all-but-n-full` and
+`remove-all-inc-of-but-n-full` can be used with run action and a specified
+parameter.
+For example:
+    `juju run-action duplicity/0 remove-older-than time=2022-10-02T19:44:00+00:00`
+        where time follows the same w3 standard as duplicity and yaml
+    `juju run-action duplicity/0 remove-all-but-n-full count=1`
+
 # Known Limitations and Future Features
 
-This charm is currently still under development. The only supported Duplicity action right now
-is full backups (through both an action and periodic backups). The following is the list
-of future Duplicity functionality:
+This charm is currently still under development. The only supported Duplicity actions right now is full backups (through both an action and periodic backups) and removal of backups.
+The following is the list of future Duplicity functionality:
 
 - incremental backups
 - restoring backups
 - verifying backups
-- listing  backed-up files
-- cleaning up backed files
+- listing backed-up files
 - additional supported backends
 
 # Upstream and Bugs

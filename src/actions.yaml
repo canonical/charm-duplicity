@@ -12,3 +12,39 @@ do-backup:
 list-current-files:
   description: |
     Lists the latest backed up files on the remote repository
+remove-older-than:
+  description: |
+    Delete all backup sets older than the given time on the remote repository
+  params:
+    time:
+      type:
+        - string
+        - number
+      format: date-time
+      description: |
+        Time string follows the same time formats as duplicity except epoch.
+  required: [time]
+remove-all-but-n-full:
+  description: |
+    Delete all backups sets that are older than the count:th last full backup
+    from the remote repository
+  params:
+    count:
+      type: integer
+      minimum: 1
+      description: |
+        Count must be larger than zero. A value of 1 means that only the single
+        most recent backup chain will be kept.
+  required: [count]
+remove-all-inc-of-but-n-full:
+  description: |
+    Delete incremental sets of all backups sets that are older than the count:th
+    last full backup from the remote repository
+  params:
+    count:
+      type: integer
+      minimum: 1
+      description: |
+        Count must be larger than zero. A value of 1 means that only the single
+        most recent backup chain will be kept intact.
+  required: [count]
