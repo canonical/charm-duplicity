@@ -1,5 +1,5 @@
 flake8
-juju
+juju<3.0.0
 mock
 git+https://github.com/openstack-charmers/zaza.git#egg=zaza
 python-openstackclient

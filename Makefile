@@ -31,6 +31,7 @@ help:
 	@echo " make unittests - run the tests defined in the unittest subdirectory"
 	@echo " make functional - run the tests defined in the functional subdirectory"
 	@echo " make test - run lint, proof, unittests and functional targets"
+	@echo " make functional-nobuild - run functional tests on prebuilt-charm and keep zaza model for debugging"
 	@echo ""
 
 clean:
@@ -80,6 +81,10 @@ functional: build
 
 test: lint proof unittests functional
 	@echo "Tests completed for charm ${CHARM_NAME}."
+
+functional-nobuild:
+	@echo "Executing functional tests on pre-built charm in ${CHARM_BUILD_DIR}"
+	@cd src && CHARM_LOCATION=${PROJECTPATH} tox -e func-debug
 
 # The targets below don't depend on a file
 .PHONY: help submodules submodules-update clean build release lint black proof unittests functional test

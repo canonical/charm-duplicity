@@ -65,6 +65,62 @@ class DuplicityHelper:
         cmd.extend(self._additional_options())
         return cmd
 
+    def remove_older_than_cmd(self, time):
+        """Juju action remove-older-than handler."""
+        cmd = ["duplicity", "remove-older-than", str(time), self._backup_url()]
+        if self.charm_config.get("private_ssh_key"):
+            if self.charm_config.get("backend") == "rsync":
+                cmd.append(
+                    '--rsync-options=-e "ssh -i {}"'.format(PRIVATE_SSH_KEY_PATH)
+                )
+            else:
+                cmd.append(
+                    "--ssh-options=-oIdentityFile={}".format(PRIVATE_SSH_KEY_PATH)
+                )
+        cmd.extend(self._additional_options())
+        # Should force be the default? or should it be considered as user input?
+        cmd.append("--force")
+        return cmd
+
+    def remove_all_but_n_full_cmd(self, count):
+        """Juju action remove-all-but-n-full handler."""
+        cmd = ["duplicity", "remove-all-but-n-full", str(count), self._backup_url()]
+        if self.charm_config.get("private_ssh_key"):
+            if self.charm_config.get("backend") == "rsync":
+                cmd.append(
+                    '--rsync-options=-e "ssh -i {}"'.format(PRIVATE_SSH_KEY_PATH)
+                )
+            else:
+                cmd.append(
+                    "--ssh-options=-oIdentityFile={}".format(PRIVATE_SSH_KEY_PATH)
+                )
+        cmd.extend(self._additional_options())
+        # Should force be the default? or should it be considered as user input?
+        cmd.append("--force")
+        return cmd
+
+    def remove_all_inc_of_but_n_full_cmd(self, count):
+        """Juju action remove-all-inc-of-but-n-full handler."""
+        cmd = [
+            "duplicity",
+            "remove-all-inc-of-but-n-full",
+            str(count),
+            self._backup_url(),
+        ]
+        if self.charm_config.get("private_ssh_key"):
+            if self.charm_config.get("backend") == "rsync":
+                cmd.append(
+                    '--rsync-options=-e "ssh -i {}"'.format(PRIVATE_SSH_KEY_PATH)
+                )
+            else:
+                cmd.append(
+                    "--ssh-options=-oIdentityFile={}".format(PRIVATE_SSH_KEY_PATH)
+                )
+        cmd.extend(self._additional_options())
+        # Should force be the default? or should it be considered as user input?
+        cmd.append("--force")
+        return cmd
+
     def _backup_url(self):
         """Remote URL.
 
@@ -252,20 +308,38 @@ class DuplicityHelper:
         """Restore the full monty or selected folders/files."""
         raise NotImplementedError()
 
-    def remove_older_than(self):
-        # TODO
-        # duplicity remove-older-than time [options] target_url
-        """Delete all backup sets older than the given time."""
-        raise NotImplementedError()
+    def remove_older_than(self, **kwargs):
+        """Delete all backup sets older than the given time.
 
-    def remove_all_but_n_full(self):
-        # TODO
-        # duplicity remove-all-but-n-full <count> <target_url>
-        """Keep the last count full backups and associated incremental sets."""
-        raise NotImplementedError()
+        :param: kwargs
+        :type: dictionary of values that may be used instead of config values
+            - used types from kwargs: time
+        """
+        self._set_environment_vars()
+        cmd = self.remove_older_than_cmd(kwargs["time"])
+        self.safe_log("Duplicity Command: {}".format(cmd))
+        return subprocess.check_output(cmd, stderr=subprocess.STDOUT)
 
-    def remove_all_inc_of_but_n_full(self):
-        # TODO
-        # duplicity remove-all-inc-of-but-n-full <count> <target_url>
-        """Keep only old full backups and not their increments."""
-        raise NotImplementedError()
+    def remove_all_but_n_full(self, **kwargs):
+        """Keep the last count full backups and associated incremental sets.
+
+        :param: kwargs
+        :type: dictionary of values that may be used instead of config values
+            - used types from kwargs: count
+        """
+        self._set_environment_vars()
+        cmd = self.remove_all_but_n_full_cmd(kwargs["count"])
+        self.safe_log("Duplicity Command: {}".format(cmd))
+        return subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+
+    def remove_all_inc_of_but_n_full(self, **kwargs):
+        """Keep only old full backups and not their increments.
+
+        :param: kwargs
+        :type: dictionary of values that may be used instead of config values
+            - used types from kwargs: count
+        """
+        self._set_environment_vars()
+        cmd = self.remove_all_inc_of_but_n_full_cmd(kwargs["count"])
+        self.safe_log("Duplicity Command: {}".format(cmd))
+        return subprocess.check_output(cmd, stderr=subprocess.STDOUT)

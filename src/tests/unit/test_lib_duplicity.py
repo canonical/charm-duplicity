@@ -58,6 +58,105 @@ class TestDuplicityHelper:
         assert expected_destination in command
 
     @pytest.mark.parametrize(
+        "backend,remote_backup_url,expected_destination",
+        [
+            ("scp", "some.host/backups", "scp://some.host/backups/unit-mock-0"),
+            ("rsync", "some.host/backups", "rsync://some.host/backups/unit-mock-0"),
+            ("ftp", "some.host/backups", "ftp://some.host/backups/unit-mock-0"),
+            ("sftp", "some.host/backups", "sftp://some.host/backups/unit-mock-0"),
+            ("s3", "some.host/backups", "s3://some.host/backups/unit-mock-0"),
+            ("file", "some.host/backups", "file://some.host/backups/unit-mock-0"),
+            ("else", "host", None),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "time",
+        [
+            ("now"),
+            (328974),
+            ("20220910T15:15:15+02:00"),
+            ("3D4S"),
+        ],
+    )
+    def test_remove_older_than_cmd(
+        self, duplicity_helper, backend, remote_backup_url, expected_destination, time
+    ):
+        """Verify remove_older_than command."""
+        duplicity_helper.charm_config["backend"] = backend
+        duplicity_helper.charm_config["remote_backup_url"] = remote_backup_url
+        command = duplicity_helper.remove_older_than_cmd(time=time)
+        assert "duplicity" in command
+        assert expected_destination in command
+        assert "--force" in command
+        assert str(time) in command
+
+    @pytest.mark.parametrize(
+        "backend,remote_backup_url,expected_destination",
+        [
+            ("scp", "some.host/backups", "scp://some.host/backups/unit-mock-0"),
+            ("rsync", "some.host/backups", "rsync://some.host/backups/unit-mock-0"),
+            ("ftp", "some.host/backups", "ftp://some.host/backups/unit-mock-0"),
+            ("sftp", "some.host/backups", "sftp://some.host/backups/unit-mock-0"),
+            ("s3", "some.host/backups", "s3://some.host/backups/unit-mock-0"),
+            ("file", "some.host/backups", "file://some.host/backups/unit-mock-0"),
+            ("else", "host", None),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "count",
+        [
+            (0),
+            (1),
+            (2204),
+            (999999999999),
+        ],
+    )
+    def test_remove_all_but_n_full_cmd(
+        self, duplicity_helper, backend, remote_backup_url, expected_destination, count
+    ):
+        """Verify remove_all_but_n_full command."""
+        duplicity_helper.charm_config["backend"] = backend
+        duplicity_helper.charm_config["remote_backup_url"] = remote_backup_url
+        command = duplicity_helper.remove_all_but_n_full_cmd(count=count)
+        assert "duplicity" in command
+        assert expected_destination in command
+        assert "--force" in command
+        assert str(count) in command
+
+    @pytest.mark.parametrize(
+        "backend,remote_backup_url,expected_destination",
+        [
+            ("scp", "some.host/backups", "scp://some.host/backups/unit-mock-0"),
+            ("rsync", "some.host/backups", "rsync://some.host/backups/unit-mock-0"),
+            ("ftp", "some.host/backups", "ftp://some.host/backups/unit-mock-0"),
+            ("sftp", "some.host/backups", "sftp://some.host/backups/unit-mock-0"),
+            ("s3", "some.host/backups", "s3://some.host/backups/unit-mock-0"),
+            ("file", "some.host/backups", "file://some.host/backups/unit-mock-0"),
+            ("else", "host", None),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "count",
+        [
+            (0),
+            (1),
+            (2204),
+            (999999999999),
+        ],
+    )
+    def test_remove_all_inc_of_but_n_full_cmd(
+        self, duplicity_helper, backend, remote_backup_url, expected_destination, count
+    ):
+        """Verify remove_all_inc_of_but_n_full command."""
+        duplicity_helper.charm_config["backend"] = backend
+        duplicity_helper.charm_config["remote_backup_url"] = remote_backup_url
+        command = duplicity_helper.remove_all_inc_of_but_n_full_cmd(count=count)
+        assert "duplicity" in command
+        assert expected_destination in command
+        assert "--force" in command
+        assert str(count) in command
+
+    @pytest.mark.parametrize(
         "user,password,expected_destination",
         [
             ("ubuntu", None, "scp://ubuntu@some.host/backups/unit-mock-0"),
