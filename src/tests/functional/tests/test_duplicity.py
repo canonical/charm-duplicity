@@ -94,7 +94,7 @@ class DuplicityBackupCronTest(BaseDuplicityTest):
     @utils.config_restore("duplicity")
     def test_no_cron(self):
         """Verify manual or invalid cron job frequency."""
-        options = ["auto", "manual"]
+        options = ["manual"]
         for option in options:
             new_config = dict(backup_frequency=option)
             zaza.model.set_application_config(self.application_name, new_config)
