@@ -259,8 +259,8 @@ def remove_backup_cron():
     """Remove backup crontab.
 
     Stops and removes the backup cron in case of duplicity not being configured
-    correctly or manual|autoconfig option is set. The former ensures backups won't
-    run under an incorrect config.
+    correctly or manual option is set. The former ensures backups won't run
+    under an incorrect config.
     """
     cron_backup_frequency = config.get("backup_frequency")
     hookenv.log(
@@ -341,6 +341,6 @@ def stop():
     """Stop and removes the backup crontab.
 
     Stops and removes the backup cron in case of duplicity not being
-    configured correctly or manual|auto.
+    configured correctly or manual.
     """
     safe_remove_backup_cron()
