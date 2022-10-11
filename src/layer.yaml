@@ -11,6 +11,8 @@ includes:
 options:
   basic:
     packages:
+      - 'rustc'
+      - 'cargo'
       - 'libffi-dev' # Needed to install cryptography, fabric dependency.
       - 'libssl-dev' # same as above
     python_packages:
