@@ -3,7 +3,8 @@ parts:
   charm:
     source: src
     plugin: reactive
-    build-snaps: [charm/2.x/stable]
+    build-snaps:
+      - charm/2.x/stable
 bases:
     - build-on:
         - name: ubuntu
