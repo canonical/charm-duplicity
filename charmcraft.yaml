@@ -4,6 +4,10 @@ parts:
     source: src
     plugin: reactive
     build-snaps:
+      # temporary fix because charm cannot install/build on 20.04 using
+      # charm/3.x without unnecessary dependency in wheelhouse.txt:
+      # Jinja2<3;python_version == '3.8'
+      # setuptools~=46.0.0;python_version == '3.8'
       - charm/2.x/stable
 bases:
     - build-on:
