@@ -22,12 +22,13 @@ remove-older-than:
         - number
       format: date-time
       description: |
-        Time string follows the same time formats as duplicity except epoch.
+        Time string follows the same time format (w3) as duplicity. For example:
+        now, 2022-09-30T13:31:15+00:00, 1665058250, 3D4H are all valid.
   required: [time]
 remove-all-but-n-full:
   description: |
-    Delete all backups sets that are older than the count:th last full backup
-    from the remote repository
+    Keep only the most recent 'count' number of full backup(s) and any
+    associated incremental sets and delete the rest from the remote repository.
   params:
     count:
       type: integer
@@ -38,8 +39,8 @@ remove-all-but-n-full:
   required: [count]
 remove-all-inc-of-but-n-full:
   description: |
-    Delete incremental sets of all backups sets that are older than the count:th
-    last full backup from the remote repository
+    Keep only the most recent 'count' number of full backup(s) but NOT any of
+    their incremental sets and delete the rest from the remote repository.
   params:
     count:
       type: integer
