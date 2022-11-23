@@ -15,15 +15,15 @@ configure:
   - tests.configure.add_pub_key_to_backup_host
   - tests.configure.setup_ftp
 gate_bundles:
-#  - xenial
-#  - bionic
-  - focal
   - jammy
+  - focal
+  - bionic
 dev_bundles:
-  - xenial
-  - bionic
+  - jammy
+  - focal
 smoke_bundles:
-  - bionic
+  - jammy
+  - focal
 target_deploy_status:
   nrpe:
     workload-status: blocked
