@@ -28,10 +28,10 @@ class TestDuplicityHelper:
         """Verify full-backup and list-current-files _run_cmd."""
         duplicity_helper.charm_config["backend"] = backend
         duplicity_helper.charm_config["remote_backup_url"] = remote_backup_url
-        command = duplicity_helper._run_cmd("full", "/tmp/duplicity")
+        command = duplicity_helper._build_cmd("full", "/tmp/duplicity")
         assert expected_destination in command
         assert "/tmp/duplicity" in command
-        command = duplicity_helper._run_cmd("list-current-files")
+        command = duplicity_helper._build_cmd("list-current-files")
         assert "duplicity" in command
         assert expected_destination in command
 
@@ -62,7 +62,7 @@ class TestDuplicityHelper:
         """Verify remove-older-than command through _run_cmd."""
         duplicity_helper.charm_config["backend"] = backend
         duplicity_helper.charm_config["remote_backup_url"] = remote_backup_url
-        command = duplicity_helper._run_cmd("remove-older-than", time)
+        command = duplicity_helper._build_cmd("remove-older-than", time)
         assert "duplicity" in command
         assert expected_destination in command
         assert "--force" in command
@@ -96,7 +96,7 @@ class TestDuplicityHelper:
         """Verify remove-all-but-n-full command through _run_cmd."""
         duplicity_helper.charm_config["backend"] = backend
         duplicity_helper.charm_config["remote_backup_url"] = remote_backup_url
-        command = duplicity_helper._run_cmd("remove-all-but-n-full", count)
+        command = duplicity_helper._build_cmd("remove-all-but-n-full", count)
         assert "duplicity" in command
         assert expected_destination in command
         assert "--force" in command
@@ -130,7 +130,7 @@ class TestDuplicityHelper:
         """Verify remove-all-inc-of-but-n-full command through _run_cmd."""
         duplicity_helper.charm_config["backend"] = backend
         duplicity_helper.charm_config["remote_backup_url"] = remote_backup_url
-        command = duplicity_helper._run_cmd("remove-all-inc-of-but-n-full", count)
+        command = duplicity_helper._build_cmd("remove-all-inc-of-but-n-full", count)
         assert "duplicity" in command
         assert expected_destination in command
         assert "--force" in command
@@ -158,7 +158,7 @@ class TestDuplicityHelper:
         duplicity_helper.charm_config["remote_backup_url"] = remote_backup_url
         duplicity_helper.charm_config["remote_user"] = user
         duplicity_helper.charm_config["remote_password"] = password
-        command = duplicity_helper._run_cmd("full")
+        command = duplicity_helper._build_cmd("full")
         assert expected_destination in command
 
     @pytest.mark.parametrize(
@@ -204,7 +204,7 @@ class TestDuplicityHelper:
         duplicity_helper.charm_config["disable_encryption"] = disable_encryption
         duplicity_helper.charm_config["gpg_public_key"] = gpg_public_key
         duplicity_helper.charm_config["private_ssh_key"] = private_ssh_key
-        command = duplicity_helper._run_cmd("full")
+        command = duplicity_helper._build_cmd("full")
         for expected_option in expected_options:
             assert expected_option in command
 

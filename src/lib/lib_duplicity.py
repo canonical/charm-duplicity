@@ -28,13 +28,13 @@ class DuplicityHelper:
         """Introduce configurations."""
         self.charm_config = hookenv.config()
 
-    def _run_cmd(self, *args):
+    def _build_cmd(self, duplicity_command, *args):
         """Duplicity command builder."""
-        cmd = ["duplicity", args[0]]
-        cmd.extend([str(i) for i in args[1:]])
+        cmd = ["duplicity", duplicity_command]
+        cmd.extend([str(i) for i in args])
         cmd.append(self._backup_url())
         cmd.extend(self._additional_options())
-        if "remove" in args[0]:
+        if "remove" in duplicity_command:
             cmd.append("--force")
         return cmd
 
@@ -163,7 +163,7 @@ class DuplicityHelper:
         :param: kwargs
         :type: dictionary of values that may be used instead of config values
         """
-        cmd = self._run_cmd("full", self.charm_config.get("aux_backup_directory"))
+        cmd = self._build_cmd("full", self.charm_config.get("aux_backup_directory"))
         if self.charm_config.get("backend") == "rsync":
             self.create_remote_dirs()
         return self._executor(cmd)
@@ -227,7 +227,7 @@ class DuplicityHelper:
         :param: kwargs
         :type: dictionary of values that may be used instead of config values
         """
-        cmd = self._run_cmd("list-current-files")
+        cmd = self._build_cmd("list-current-files")
         return self._executor(cmd)
 
     def restore(self):
@@ -243,7 +243,7 @@ class DuplicityHelper:
         :type: dictionary of values that may be used instead of config values
             - used types from kwargs: time
         """
-        cmd = self._run_cmd("remove-older-than", kwargs["time"])
+        cmd = self._build_cmd("remove-older-than", kwargs["time"])
         return self._executor(cmd)
 
     def remove_all_but_n_full(self, **kwargs):
@@ -253,7 +253,7 @@ class DuplicityHelper:
         :type: dictionary of values that may be used instead of config values
             - used types from kwargs: count
         """
-        cmd = self._run_cmd("remove-all-but-n-full", kwargs["count"])
+        cmd = self._build_cmd("remove-all-but-n-full", kwargs["count"])
         return self._executor(cmd)
 
     def remove_all_inc_of_but_n_full(self, **kwargs):
@@ -263,5 +263,5 @@ class DuplicityHelper:
         :type: dictionary of values that may be used instead of config values
             - used types from kwargs: count
         """
-        cmd = self._run_cmd("remove-all-inc-of-but-n-full", kwargs["count"])
+        cmd = self._build_cmd("remove-all-inc-of-but-n-full", kwargs["count"])
         return self._executor(cmd)
