@@ -262,7 +262,7 @@ class DuplicityBackupCommandTest(BaseDuplicityCommandTest):
 
     @utils.config_restore("duplicity")
     def test_file_full(self):
-        """Verify do-backup action with ftp."""
+        """Verify do-backup action with file."""
         additional_config = {
             "backend": "file",
             "remote_backup_url": "/home/ubuntu/test-backups",
@@ -330,7 +330,7 @@ class DuplicityListFilesCommandTest(BaseDuplicityCommandTest):
 
     @utils.config_restore("duplicity")
     def test_file_full_list_current_files(self):
-        """Verify list-current-files action with ftp."""
+        """Verify list-current-files action with file."""
         additional_config = {
             "backend": "file",
             "remote_backup_url": "/home/ubuntu/test-backups",
@@ -399,7 +399,7 @@ class DuplicityRemoveOlderThanCommandTest(BaseDuplicityCommandTest):
 
     @utils.config_restore("duplicity")
     def test_file_full_remove_older_than(self):
-        """Verify remove-older-than action with ftp."""
+        """Verify remove-older-than action with file."""
         additional_config = {
             "backend": "file",
             "remote_backup_url": "/home/ubuntu/test-backups",
@@ -468,7 +468,7 @@ class DuplicityRemoveAllButNFullCommandTest(BaseDuplicityCommandTest):
 
     @utils.config_restore("duplicity")
     def test_file_full_remove_all_but_n_full(self):
-        """Verify remove-all-but-n-full action with ftp."""
+        """Verify remove-all-but-n-full action with file."""
         additional_config = {
             "backend": "file",
             "remote_backup_url": "/home/ubuntu/test-backups",
@@ -537,7 +537,7 @@ class DuplicityRemoveAllIncOfButNFullCommandTest(BaseDuplicityCommandTest):
 
     @utils.config_restore("duplicity")
     def test_file_full_remove_all_inc_of_but_n_full(self):
-        """Verify remove-all-inc-of-but-n-full action with ftp."""
+        """Verify remove-all-inc-of-but-n-full action with file."""
         additional_config = {
             "backend": "file",
             "remote_backup_url": "/home/ubuntu/test-backups",
