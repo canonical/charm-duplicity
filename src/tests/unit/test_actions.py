@@ -159,7 +159,7 @@ class TestActions:
             assert type(exception_raised) == type(e)
             for expected_contain in expected_fail_contains:
                 assert expected_contain in str(e)
-        mock_hookenv.function_fail.assert_called()
+        mock_hookenv.action_fail.assert_called()
         mock_remove.assert_not_called()
         mock_clear_flag.assert_not_called()
 
@@ -176,7 +176,7 @@ class TestDoBackupAction:
         expected_dict_input = dict(output=result.decode("utf-8"))
         actions.do_backup()
         mock_helper.do_backup.assert_called_once()
-        mock_hookenv.function_set.called_with(expected_dict_input)
+        mock_hookenv.action_set.called_with(expected_dict_input)
 
 
 class TestListCurrentFilesAction:
@@ -191,7 +191,7 @@ class TestListCurrentFilesAction:
         expected_dict_input = dict(output=result.decode("utf-8"))
         actions.list_current_files()
         mock_helper.list_current_files.assert_called_once()
-        mock_hookenv.function_set.called_with(expected_dict_input)
+        mock_hookenv.action_set.called_with(expected_dict_input)
 
 
 class TestRemoveOlderThanAction:
@@ -206,7 +206,7 @@ class TestRemoveOlderThanAction:
         expected_dict_input = dict(output=result.decode("utf-8"))
         actions.remove_older_than()
         mock_helper.remove_older_than.assert_called_once()
-        mock_hookenv.function_set.called_with(expected_dict_input)
+        mock_hookenv.action_set.called_with(expected_dict_input)
 
 
 class TestRemoveAllButNFullAction:
@@ -221,7 +221,7 @@ class TestRemoveAllButNFullAction:
         expected_dict_input = dict(output=result.decode("utf-8"))
         actions.remove_all_but_n_full()
         mock_helper.remove_all_but_n_full.assert_called_once()
-        mock_hookenv.function_set.called_with(expected_dict_input)
+        mock_hookenv.action_set.called_with(expected_dict_input)
 
 
 class TestRemoveAllIncOfButNFullAction:
@@ -236,4 +236,4 @@ class TestRemoveAllIncOfButNFullAction:
         expected_dict_input = dict(output=result.decode("utf-8"))
         actions.remove_all_inc_of_but_n_full()
         mock_helper.remove_all_inc_of_but_n_full.assert_called_once()
-        mock_hookenv.function_set.called_with(expected_dict_input)
+        mock_hookenv.action_set.called_with(expected_dict_input)

@@ -19,37 +19,34 @@ helper = DuplicityHelper()
 error_file = "/var/run/periodic_backup.error"
 
 
-def do_backup(*args):
+def do_backup(*_):
     """do-backup action."""
     output = helper.do_backup()
-    hookenv.function_set(dict(output=output.decode("utf-8")))
+    hookenv.action_set({"output": output.decode("utf-8")})
 
 
-def list_current_files(*args):
+def list_current_files(*_):
     """list-current-files action."""
     output = helper.list_current_files()
-    hookenv.function_set(dict(output=output.decode("utf-8")))
+    hookenv.action_set({"output": output.decode("utf-8")})
 
 
-def remove_older_than(*args):
+def remove_older_than(*_):
     """remove-older-than action."""
-    time = hookenv.action_get("time")
-    output = helper.remove_older_than(time=time)
-    hookenv.function_set(dict(output=output.decode("utf-8")))
+    output = helper.remove_older_than(hookenv.action_get("time"))
+    hookenv.action_set({"output": output.decode("utf-8")})
 
 
-def remove_all_but_n_full(*args):
+def remove_all_but_n_full(*_):
     """remove-all-but-n-full action."""
-    count = hookenv.action_get("count")
-    output = helper.remove_all_but_n_full(count=count)
-    hookenv.function_set(dict(output=output.decode("utf-8")))
+    output = helper.remove_all_but_n_full(hookenv.action_get("count"))
+    hookenv.action_set({"output": output.decode("utf-8")})
 
 
-def remove_all_inc_of_but_n_full(*args):
+def remove_all_inc_of_but_n_full(*_):
     """remove-all-inc-of-but-n-full action."""
-    count = hookenv.action_get("count")
-    output = helper.remove_all_inc_of_but_n_full(count=count)
-    hookenv.function_set(dict(output=output.decode("utf-8")))
+    output = helper.remove_all_inc_of_but_n_full(hookenv.action_get("count"))
+    hookenv.action_set({"output": output.decode("utf-8")})
 
 
 ACTIONS = {
@@ -72,18 +69,20 @@ def main(args):
     except CalledProcessError as e:
         err_msg = (
             'Command "{}" failed with return code "{}" '
-            "and error output:\n{}".format(
-                e.cmd, e.returncode, e.output.decode("utf-8")
+            "and error output:{}{}".format(
+                e.cmd, e.returncode, os.linesep, e.output.decode("utf-8")
             )
         )
         hookenv.log(err_msg, level=hookenv.ERROR)
-        hookenv.function_fail(err_msg)
+        hookenv.action_fail(err_msg)
     except Exception as e:
         hookenv.log(
-            "{} action failed: {}\n{}".format(action_name, e, traceback.print_exc()),
+            "{} action failed: {}{}{}".format(
+                action_name, e, os.linesep, traceback.print_exc()
+            ),
             level=hookenv.ERROR,
         )
-        hookenv.function_fail(str(e))
+        hookenv.action_fail(str(e))
     else:
         if action_name == "do-backup":
             clear_flag("duplicity.failed_backup")

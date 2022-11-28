@@ -31,7 +31,7 @@ class DuplicityHelper:
     def _build_cmd(self, duplicity_command, *args):
         """Duplicity command builder."""
         cmd = ["duplicity", duplicity_command]
-        cmd.extend([str(i) for i in args])
+        cmd.extend([str(arg) for arg in args])
         cmd.append(self._backup_url())
         cmd.extend(self._additional_options())
         if "remove" in duplicity_command:
@@ -236,32 +236,32 @@ class DuplicityHelper:
         """Restore the full monty or selected folders/files."""
         raise NotImplementedError()
 
-    def remove_older_than(self, **kwargs):
+    def remove_older_than(self, time):
         """Delete all backup sets older than the given time.
 
         :param: kwargs
         :type: dictionary of values that may be used instead of config values
             - used types from kwargs: time
         """
-        cmd = self._build_cmd("remove-older-than", kwargs["time"])
+        cmd = self._build_cmd("remove-older-than", time)
         return self._executor(cmd)
 
-    def remove_all_but_n_full(self, **kwargs):
+    def remove_all_but_n_full(self, count):
         """Keep the last count full backups and associated incremental sets.
 
         :param: kwargs
         :type: dictionary of values that may be used instead of config values
             - used types from kwargs: count
         """
-        cmd = self._build_cmd("remove-all-but-n-full", kwargs["count"])
+        cmd = self._build_cmd("remove-all-but-n-full", count)
         return self._executor(cmd)
 
-    def remove_all_inc_of_but_n_full(self, **kwargs):
+    def remove_all_inc_of_but_n_full(self, count):
         """Keep only old full backups and not their increments.
 
         :param: kwargs
         :type: dictionary of values that may be used instead of config values
             - used types from kwargs: count
         """
-        cmd = self._build_cmd("remove-all-inc-of-but-n-full", kwargs["count"])
+        cmd = self._build_cmd("remove-all-inc-of-but-n-full", count)
         return self._executor(cmd)
