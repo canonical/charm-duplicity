@@ -38,7 +38,7 @@ class DuplicityBackupCronTest(BaseDuplicityTest):
         """Verify cron job creation."""
         options = ["daily", "weekly", "monthly"]
         for option in options:
-            new_config = dict(backup_frequency=option)
+            new_config = {"backup_frequency": option}
             zaza.model.set_application_config(self.application_name, new_config)
             try:
                 zaza.model.block_until_file_has_contents(
@@ -57,7 +57,7 @@ class DuplicityBackupCronTest(BaseDuplicityTest):
     def test_cron_creation_cron_string(self):
         """Verify cron job creation."""
         cron_string = "* * * * *"
-        new_config = dict(backup_frequency=cron_string)
+        new_config = {"backup_frequency": cron_string}
         zaza.model.set_application_config(self.application_name, new_config)
         try:
             zaza.model.block_until_file_has_contents(
@@ -76,7 +76,7 @@ class DuplicityBackupCronTest(BaseDuplicityTest):
     def test_cron_invalid_cron_string(self):
         """Verify cron job creation with invalid frequency."""
         cron_string = "* * * *"
-        new_config = dict(backup_frequency=cron_string)
+        new_config = {"backup_frequency": cron_string}
         zaza.model.set_application_config(self.application_name, new_config)
         try:
             duplicity_workload_checker = utils.get_workload_application_status_checker(
@@ -96,7 +96,7 @@ class DuplicityBackupCronTest(BaseDuplicityTest):
         """Verify manual or invalid cron job frequency."""
         options = ["manual"]
         for option in options:
-            new_config = dict(backup_frequency=option)
+            new_config = {"backup_frequency": option}
             zaza.model.set_application_config(self.application_name, new_config)
             try:
                 zaza.model.block_until_file_missing(
@@ -123,9 +123,11 @@ class DuplicityEncryptionValidationTest(BaseDuplicityTest):
     @utils.config_restore("duplicity")
     def test_encryption_true_no_key_no_passphrase_blocks(self):
         """Verify unit is blocked with no passphrase or key."""
-        new_config = dict(
-            encryption_passphrase="", gpg_public_key="", disable_encryption="False"
-        )
+        new_config = {
+            "encryption_passphrase": "",
+            "gpg_public_key": "",
+            "disable_encryption": "False",
+        }
         zaza.model.set_application_config(
             self.application_name, new_config, self.model_name
         )
@@ -150,7 +152,7 @@ class DuplicityEncryptionValidationTest(BaseDuplicityTest):
     def test_encryption_true_with_key(self):
         """Verify encryption with a valid gpg key."""
         zaza.model.set_application_config(
-            self.application_name, dict(disable_encryption="False"), self.model_name
+            self.application_name, {"disable_encryption": "False"}, self.model_name
         )
         try:
             duplicity_workload_checker = utils.get_workload_application_status_checker(
@@ -163,7 +165,7 @@ class DuplicityEncryptionValidationTest(BaseDuplicityTest):
                 "no passphrase or key."
             )
         zaza.model.set_application_config(
-            self.application_name, dict(gpg_public_key="S0M3k3Y")
+            self.application_name, {"gpg_public_key": "S0M3k3Y"}
         )
         try:
             zaza.model.block_until_all_units_idle()
@@ -177,7 +179,7 @@ class DuplicityEncryptionValidationTest(BaseDuplicityTest):
     def test_encryption_true_with_passphrase(self):
         """Verify encryption with a valid passphrase."""
         zaza.model.set_application_config(
-            self.application_name, dict(disable_encryption="False"), self.model_name
+            self.application_name, {"disable_encryption": "False"}, self.model_name
         )
         try:
             duplicity_workload_checker = utils.get_workload_application_status_checker(
@@ -190,7 +192,7 @@ class DuplicityEncryptionValidationTest(BaseDuplicityTest):
                 "no passphrase or key."
             )
         zaza.model.set_application_config(
-            self.application_name, dict(encryption_passphrase="somephrase")
+            self.application_name, {"encryption_passphrase": "somephrase"}
         )
         try:
             zaza.model.block_until_all_units_idle()
@@ -201,33 +203,25 @@ class DuplicityEncryptionValidationTest(BaseDuplicityTest):
             )
 
 
-class DuplicityBackupCommandTest(BaseDuplicityTest):
-    """Verify do-backup command."""
+class BaseDuplicityCommandTest(BaseDuplicityTest):
+    """VHelper class to use for duplicity command tests."""
 
     @classmethod
     def setUpClass(cls):
         """Set up do-backup command tests."""
         super().setUpClass()
         cls.backup_host = zaza.model.get_units("backup-host")[0]
-        cls.duplicity_unit = zaza.model.get_units("duplicity")[0]
-        cls.backup_host_ip = cls.backup_host.public_address
+        cls.duplicity_unit = zaza.model.get_units("duplicity")[0].name
         user_pass_pair = ubuntu_user_pass.split(":")
-        cls.remote_user = user_pass_pair[0]
-        cls.remote_pass = user_pass_pair[1]
-        cls.action = "do-backup"
         cls.ssh_priv_key = cls.get_ssh_priv_key()
-
-    def get_config(self, **kwargs):
-        """Return app config."""
-        base_config = dict(
-            remote_backup_url=self.backup_host_ip,
-            aux_backup_directory=ubuntu_backup_directory_source,
-            remote_user=self.remote_user,
-            remote_password=self.remote_pass,
-        )
-        for key, value in kwargs.items():
-            base_config[key] = value
-        return base_config
+        cls.base_config = {
+            "remote_backup_url": cls.backup_host.public_address,
+            "aux_backup_directory": ubuntu_backup_directory_source,
+            "remote_user": user_pass_pair[0],
+            "remote_password": user_pass_pair[1],
+        }
+        cls.auxiliary_actions = []
+        cls.action_params = None
 
     @staticmethod
     def get_ssh_priv_key():
@@ -237,208 +231,357 @@ class DuplicityBackupCommandTest(BaseDuplicityTest):
         encoded_ssh_private_key = base64.b64encode(ssh_private_key)
         return encoded_ssh_private_key.decode("utf-8")
 
-    @utils.config_restore("duplicity")
-    def test_scp_full_do_backup_action(self):
-        """Verify do-backup action with scp."""
-        additional_config = dict(backend="scp")
-        new_config = self.get_config(**additional_config)
-        utils.set_config_and_wait(self.application_name, new_config)
+    def _run(self, **config):
+        """Run action on zaza model."""
+        config.update(self.base_config)
+        utils.set_config_and_wait(self.application_name, config)
+        for a in self.auxiliary_actions:
+            zaza.model.run_action(self.duplicity_unit, a, raise_on_failure=True)
         zaza.model.run_action(
-            self.duplicity_unit.name, self.action, raise_on_failure=True
-        )
-
-    @utils.config_restore("duplicity")
-    def test_file_full_do_backup_action(self):
-        """Verify do-backup action with ftp."""
-        additional_config = dict(
-            backend="file", remote_backup_url="/home/ubuntu/test-backups"
-        )
-        new_config = self.get_config(**additional_config)
-        utils.set_config_and_wait(self.application_name, new_config)
-        zaza.model.run_action(
-            self.duplicity_unit.name, self.action, raise_on_failure=True
-        )
-
-    @utils.config_restore("duplicity")
-    def test_scp_full_ssh_key_auth_backup_action(self):
-        """Verify do-backup action with scp and private key."""
-        additional_config = dict(
-            backend="scp", private_ssh_key=self.ssh_priv_key, remote_password=""
-        )
-        new_config = self.get_config(**additional_config)
-        utils.set_config_and_wait(self.application_name, new_config)
-        zaza.model.run_action(
-            self.duplicity_unit.name, self.action, raise_on_failure=True
-        )
-
-    @utils.config_restore("duplicity")
-    def test_rsync_full_ssh_key_auth_backup_action(self):
-        """Verify do-backup action with rsync and private key."""
-        additional_config = dict(
-            backend="rsync", private_ssh_key=self.ssh_priv_key, remote_password=""
-        )
-        new_config = self.get_config(**additional_config)
-        utils.set_config_and_wait(self.application_name, new_config)
-        zaza.model.run_action(
-            self.duplicity_unit.name, self.action, raise_on_failure=True
-        )
-
-    @utils.config_restore("duplicity")
-    def test_sftp_full_do_backup(self):
-        """Verify do-backup action with sftp and password."""
-        additional_config = dict(backend="sftp")
-        new_config = self.get_config(**additional_config)
-        utils.set_config_and_wait(self.application_name, new_config)
-        zaza.model.run_action(
-            self.duplicity_unit.name, self.action, raise_on_failure=True
-        )
-
-    @utils.config_restore("duplicity")
-    def test_sftp_full_ssh_key_do_backup(self):
-        """Verify do-backup action with sftp with private key."""
-        additional_config = dict(
-            backend="sftp", private_ssh_key=self.ssh_priv_key, remote_password=""
-        )
-        new_config = self.get_config(**additional_config)
-        utils.set_config_and_wait(self.application_name, new_config)
-        zaza.model.run_action(
-            self.duplicity_unit.name, self.action, raise_on_failure=True
-        )
-
-    @utils.config_restore("duplicity")
-    def test_ftp_full_do_backup(self):
-        """Verify do-backup action with ftp."""
-        additional_config = dict(backend="ftp")
-        new_config = self.get_config(**additional_config)
-        utils.set_config_and_wait(self.application_name, new_config)
-        zaza.model.run_action(
-            self.duplicity_unit.name, self.action, raise_on_failure=True
+            self.duplicity_unit,
+            self.action,
+            action_params=self.action_params,
+            raise_on_failure=True,
         )
 
 
-class DuplicityListFilesCommandTest(BaseDuplicityTest):
-    """Verify list-current-files action."""
+class DuplicityBackupCommandTest(BaseDuplicityCommandTest):
+    """Verify do-backup command."""
 
     @classmethod
     def setUpClass(cls):
-        """Set up list-current-files action tests."""
+        """Set up do-backup command tests."""
         super().setUpClass()
-        cls.backup_host = zaza.model.get_units("backup-host")[0]
-        cls.duplicity_unit = zaza.model.get_units("duplicity")[0]
-        cls.backup_host_ip = cls.backup_host.public_address
-        user_pass_pair = ubuntu_user_pass.split(":")
-        cls.remote_user = user_pass_pair[0]
-        cls.remote_pass = user_pass_pair[1]
+        cls.action = "do-backup"
+
+    @utils.config_restore("duplicity")
+    def test_scp_full(self):
+        """Verify do-backup action with scp."""
+        additional_config = {"backend": "scp"}
+        self._run(**additional_config)
+
+    @utils.config_restore("duplicity")
+    def test_file_full(self):
+        """Verify do-backup action with file."""
+        additional_config = {
+            "backend": "file",
+            "remote_backup_url": "/home/ubuntu/test-backups",
+        }
+        self._run(**additional_config)
+
+    @utils.config_restore("duplicity")
+    def test_scp_full_ssh_key(self):
+        """Verify do-backup action with scp and private key."""
+        additional_config = {
+            "backend": "scp",
+            "private_ssh_key": self.ssh_priv_key,
+            "remote_password": "",
+        }
+        self._run(**additional_config)
+
+    @utils.config_restore("duplicity")
+    def test_rsync_full_ssh_key(self):
+        """Verify do-backup action with rsync and private key."""
+        additional_config = {
+            "backend": "rsync",
+            "private_ssh_key": self.ssh_priv_key,
+            "remote_password": "",
+        }
+        self._run(**additional_config)
+
+    @utils.config_restore("duplicity")
+    def test_sftp_full(self):
+        """Verify do-backup action with sftp and password."""
+        additional_config = {"backend": "sftp"}
+        self._run(**additional_config)
+
+    @utils.config_restore("duplicity")
+    def test_sftp_full_ssh_key(self):
+        """Verify do-backup action with sftp and private key."""
+        additional_config = {
+            "backend": "sftp",
+            "private_ssh_key": self.ssh_priv_key,
+            "remote_password": "",
+        }
+        self._run(**additional_config)
+
+    @utils.config_restore("duplicity")
+    def test_ftp_full(self):
+        """Verify do-backup action with ftp and password."""
+        additional_config = {"backend": "ftp"}
+        self._run(**additional_config)
+
+
+class DuplicityListFilesCommandTest(BaseDuplicityCommandTest):
+    """Verify list-current-files command."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Set up list-current-files command tests."""
+        super().setUpClass()
         cls.action = "list-current-files"
-        cls.ssh_priv_key = cls.get_ssh_priv_key()
-
-    def get_config(self, **kwargs):
-        """Get charm config."""
-        base_config = dict(
-            remote_backup_url=self.backup_host_ip,
-            aux_backup_directory=ubuntu_backup_directory_source,
-            remote_user=self.remote_user,
-            remote_password=self.remote_pass,
-        )
-        base_config.update(kwargs)
-        return base_config
-
-    @staticmethod
-    def get_ssh_priv_key():
-        """Get ssh private key."""
-        with open("./tests/resources/testing_id_rsa", "rb") as f:
-            ssh_private_key = f.read()
-        encoded_ssh_private_key = base64.b64encode(ssh_private_key)
-        return encoded_ssh_private_key.decode("utf-8")
+        cls.auxiliary_actions = ["do-backup"]
 
     @utils.config_restore("duplicity")
-    def test_scp_full_list_current_files_action(self):
-        """Verify list-current-files work with scp backend."""
-        new_config = self.get_config(backend="scp")
-        utils.set_config_and_wait(self.application_name, new_config)
-        zaza.model.run_action(
-            self.duplicity_unit.name, "do-backup", raise_on_failure=True
-        )
-        zaza.model.run_action(
-            self.duplicity_unit.name, self.action, raise_on_failure=True
-        )
+    def test_scp_full_list_current_files(self):
+        """Verify list-current-files action with scp."""
+        additional_config = {"backend": "scp"}
+        self._run(**additional_config)
 
     @utils.config_restore("duplicity")
-    def test_file_full_list_current_files_action(self):
-        """Verify list-current-files work with file backend."""
-        new_config = self.get_config(
-            backend="file", remote_backup_url="/home/ubuntu/test-backups"
-        )
-        utils.set_config_and_wait(self.application_name, new_config)
-        zaza.model.run_action(
-            self.duplicity_unit.name, "do-backup", raise_on_failure=True
-        )
-        zaza.model.run_action(
-            self.duplicity_unit.name, self.action, raise_on_failure=True
-        )
+    def test_file_full_list_current_files(self):
+        """Verify list-current-files action with file."""
+        additional_config = {
+            "backend": "file",
+            "remote_backup_url": "/home/ubuntu/test-backups",
+        }
+        self._run(**additional_config)
 
     @utils.config_restore("duplicity")
-    def test_scp_full_ssh_key_auth_list_current_files_action(self):
-        """Verify list-current-files work after do-backup run."""
-        new_config = self.get_config(
-            backend="scp", private_ssh_key=self.ssh_priv_key, remote_password=""
-        )
-        utils.set_config_and_wait(self.application_name, new_config)
-        zaza.model.run_action(
-            self.duplicity_unit.name, "do-backup", raise_on_failure=True
-        )
-        zaza.model.run_action(
-            self.duplicity_unit.name, self.action, raise_on_failure=True
-        )
+    def test_scp_full_ssh_key_list_current_files(self):
+        """Verify list-current-files action with scp and private key."""
+        additional_config = {
+            "backend": "scp",
+            "private_ssh_key": self.ssh_priv_key,
+            "remote_password": "",
+        }
+        self._run(**additional_config)
 
     @utils.config_restore("duplicity")
-    def test_rsync_full_ssh_key_auth_list_current_files_action(self):
-        """Verify list-current-files work with rsync backend after do-backup run."""
-        new_config = self.get_config(
-            backend="rsync", private_ssh_key=self.ssh_priv_key, remote_password=""
-        )
-        utils.set_config_and_wait(self.application_name, new_config)
-        zaza.model.run_action(
-            self.duplicity_unit.name, "do-backup", raise_on_failure=True
-        )
-        zaza.model.run_action(
-            self.duplicity_unit.name, self.action, raise_on_failure=True
-        )
+    def test_rsync_full_ssh_key_list_current_files(self):
+        """Verify list-current-files action with rsync and private key."""
+        additional_config = {
+            "backend": "rsync",
+            "private_ssh_key": self.ssh_priv_key,
+            "remote_password": "",
+        }
+        self._run(**additional_config)
 
     @utils.config_restore("duplicity")
     def test_sftp_full_list_current_files(self):
-        """Verify list-current-files work with sftp backend after do-backup run."""
-        new_config = self.get_config(backend="sftp")
-        utils.set_config_and_wait(self.application_name, new_config)
-        zaza.model.run_action(
-            self.duplicity_unit.name, "do-backup", raise_on_failure=True
-        )
-        zaza.model.run_action(
-            self.duplicity_unit.name, self.action, raise_on_failure=True
-        )
+        """Verify list-current-files action with sftp and password."""
+        additional_config = {"backend": "sftp"}
+        self._run(**additional_config)
 
     @utils.config_restore("duplicity")
     def test_sftp_full_ssh_key_list_current_files(self):
-        """Verify list-current-files work with sftp backend after do-backup run."""
-        new_config = self.get_config(
-            backend="sftp", private_ssh_key=self.ssh_priv_key, remote_password=""
-        )
-        utils.set_config_and_wait(self.application_name, new_config)
-        zaza.model.run_action(
-            self.duplicity_unit.name, "do-backup", raise_on_failure=True
-        )
-        zaza.model.run_action(
-            self.duplicity_unit.name, self.action, raise_on_failure=True
-        )
+        """Verify list-current-files action with sftp and private key."""
+        additional_config = {
+            "backend": "sftp",
+            "private_ssh_key": self.ssh_priv_key,
+            "remote_password": "",
+        }
+        self._run(**additional_config)
 
     @utils.config_restore("duplicity")
     def test_ftp_full_list_current_files(self):
-        """Verify list-current-files work with ftp backend after do-backup run."""
-        new_config = self.get_config(backend="ftp")
-        utils.set_config_and_wait(self.application_name, new_config)
-        zaza.model.run_action(
-            self.duplicity_unit.name, "do-backup", raise_on_failure=True
-        )
-        zaza.model.run_action(
-            self.duplicity_unit.name, self.action, raise_on_failure=True
-        )
+        """Verify list-current-files action with ftp and password."""
+        additional_config = {"backend": "ftp"}
+        self._run(**additional_config)
+
+
+class DuplicityRemoveOlderThanCommandTest(BaseDuplicityCommandTest):
+    """Verify remove-older-than command."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Set up remove-older-than command tests."""
+        super().setUpClass()
+        cls.action = "remove-older-than"
+        cls.auxiliary_actions = ["do-backup", "do-backup"]
+        cls.action_params = {"time": "now"}
+
+    @utils.config_restore("duplicity")
+    def test_scp_full_list_remove_older_than(self):
+        """Verify remove-older-than action with scp."""
+        additional_config = {"backend": "scp"}
+        self._run(**additional_config)
+
+    @utils.config_restore("duplicity")
+    def test_file_full_remove_older_than(self):
+        """Verify remove-older-than action with file."""
+        additional_config = {
+            "backend": "file",
+            "remote_backup_url": "/home/ubuntu/test-backups",
+        }
+        self._run(**additional_config)
+
+    @utils.config_restore("duplicity")
+    def test_scp_full_ssh_key_remove_older_than(self):
+        """Verify remove-older-than action with scp and private key."""
+        additional_config = {
+            "backend": "scp",
+            "private_ssh_key": self.ssh_priv_key,
+            "remote_password": "",
+        }
+        self._run(**additional_config)
+
+    @utils.config_restore("duplicity")
+    def test_rsync_full_ssh_key_remove_older_than(self):
+        """Verify remove-older-than action with rsync and private key."""
+        additional_config = {
+            "backend": "rsync",
+            "private_ssh_key": self.ssh_priv_key,
+            "remote_password": "",
+        }
+        self._run(**additional_config)
+
+    @utils.config_restore("duplicity")
+    def test_sftp_full_remove_older_than(self):
+        """Verify remove-older-than action with sftp and password."""
+        additional_config = {"backend": "sftp"}
+        self._run(**additional_config)
+
+    @utils.config_restore("duplicity")
+    def test_sftp_full_ssh_key_remove_older_than(self):
+        """Verify remove-older-than action with sftp and private key."""
+        additional_config = {
+            "backend": "sftp",
+            "private_ssh_key": self.ssh_priv_key,
+            "remote_password": "",
+        }
+        self._run(**additional_config)
+
+    @utils.config_restore("duplicity")
+    def test_ftp_full_remove_older_than(self):
+        """Verify remove-older-than action with ftp and password."""
+        additional_config = {"backend": "ftp"}
+        self._run(**additional_config)
+
+
+class DuplicityRemoveAllButNFullCommandTest(BaseDuplicityCommandTest):
+    """Verify remove-all-but-n-full command."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Set up remove-all-but-n-full command tests."""
+        super().setUpClass()
+        cls.action = "remove-all-but-n-full"
+        cls.auxiliary_actions = ["do-backup", "do-backup"]
+        cls.action_params = {"count": 1}
+
+    @utils.config_restore("duplicity")
+    def test_scp_full_list_remove_all_but_n_full(self):
+        """Verify remove-all-but-n-full action with scp."""
+        additional_config = {"backend": "scp"}
+        self._run(**additional_config)
+
+    @utils.config_restore("duplicity")
+    def test_file_full_remove_all_but_n_full(self):
+        """Verify remove-all-but-n-full action with file."""
+        additional_config = {
+            "backend": "file",
+            "remote_backup_url": "/home/ubuntu/test-backups",
+        }
+        self._run(**additional_config)
+
+    @utils.config_restore("duplicity")
+    def test_scp_full_ssh_key_remove_all_but_n_full(self):
+        """Verify remove-all-but-n-full action with scp and private key."""
+        additional_config = {
+            "backend": "scp",
+            "private_ssh_key": self.ssh_priv_key,
+            "remote_password": "",
+        }
+        self._run(**additional_config)
+
+    @utils.config_restore("duplicity")
+    def test_rsync_full_ssh_key_remove_all_but_n_full(self):
+        """Verify remove-all-but-n-full action with rsync and private key."""
+        additional_config = {
+            "backend": "rsync",
+            "private_ssh_key": self.ssh_priv_key,
+            "remote_password": "",
+        }
+        self._run(**additional_config)
+
+    @utils.config_restore("duplicity")
+    def test_sftp_full_remove_all_but_n_full(self):
+        """Verify remove-all-but-n-full action with sftp and password."""
+        additional_config = {"backend": "sftp"}
+        self._run(**additional_config)
+
+    @utils.config_restore("duplicity")
+    def test_sftp_full_ssh_key_remove_all_but_n_full(self):
+        """Verify remove-all-but-n-full action with sftp and private key."""
+        additional_config = {
+            "backend": "sftp",
+            "private_ssh_key": self.ssh_priv_key,
+            "remote_password": "",
+        }
+        self._run(**additional_config)
+
+    @utils.config_restore("duplicity")
+    def test_ftp_full_remove_all_but_n_full(self):
+        """Verify remove-all-but-n-full action with ftp and password."""
+        additional_config = {"backend": "ftp"}
+        self._run(**additional_config)
+
+
+class DuplicityRemoveAllIncOfButNFullCommandTest(BaseDuplicityCommandTest):
+    """Verify remove-all-inc-of-but-n-fullcommand."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Set up remove-all-inc-of-but-n-full command tests."""
+        super().setUpClass()
+        cls.action = "remove-all-inc-of-but-n-full"
+        cls.auxiliary_actions = ["do-backup", "do-backup"]
+        cls.action_params = {"count": 1}
+
+    @utils.config_restore("duplicity")
+    def test_scp_full_list_remove_all_inc_of_but_n_full(self):
+        """Verify remove-all-inc-of-but-n-full action with scp."""
+        additional_config = {"backend": "scp"}
+        self._run(**additional_config)
+
+    @utils.config_restore("duplicity")
+    def test_file_full_remove_all_inc_of_but_n_full(self):
+        """Verify remove-all-inc-of-but-n-full action with file."""
+        additional_config = {
+            "backend": "file",
+            "remote_backup_url": "/home/ubuntu/test-backups",
+        }
+        self._run(**additional_config)
+
+    @utils.config_restore("duplicity")
+    def test_scp_full_ssh_key_remove_all_inc_of_but_n_full(self):
+        """Verify remove-all-inc-of-but-n-full action with scp and private key."""
+        additional_config = {
+            "backend": "scp",
+            "private_ssh_key": self.ssh_priv_key,
+            "remote_password": "",
+        }
+        self._run(**additional_config)
+
+    @utils.config_restore("duplicity")
+    def test_rsync_full_ssh_key_remove_all_inc_of_but_n_full(self):
+        """Verify remove-all-inc-of-but-n-full action with rsync and private key."""
+        additional_config = {
+            "backend": "rsync",
+            "private_ssh_key": self.ssh_priv_key,
+            "remote_password": "",
+        }
+        self._run(**additional_config)
+
+    @utils.config_restore("duplicity")
+    def test_sftp_full_remove_all_inc_of_but_n_full(self):
+        """Verify remove-all-inc-of-but-n-full action with sftp and password."""
+        additional_config = {"backend": "sftp"}
+        self._run(**additional_config)
+
+    @utils.config_restore("duplicity")
+    def test_sftp_full_ssh_remove_all_inc_of_but_n_full(self):
+        """Verify remove-all-inc-of-but-n-full action with sftp and private key."""
+        additional_config = {
+            "backend": "sftp",
+            "private_ssh_key": self.ssh_priv_key,
+            "remote_password": "",
+        }
+        self._run(**additional_config)
+
+    @utils.config_restore("duplicity")
+    def test_ftp_full_remove_all_inc_of_but_n_full(self):
+        """Verify remove-all-inc-of-but-n-full action with ftp and password."""
+        additional_config = {"backend": "ftp"}
+        self._run(**additional_config)

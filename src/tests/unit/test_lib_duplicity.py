@@ -22,15 +22,17 @@ class TestDuplicityHelper:
             ("else", "host", None),
         ],
     )
-    def test_backup_cmd(
+    def test_run_cmd_backup_and_list(
         self, duplicity_helper, backend, remote_backup_url, expected_destination
     ):
-        """Verify backup command."""
+        """Verify full-backup and list-current-files _run_cmd."""
         duplicity_helper.charm_config["backend"] = backend
         duplicity_helper.charm_config["remote_backup_url"] = remote_backup_url
-        command = duplicity_helper.backup_cmd
-        assert "duplicity" in command
+        command = duplicity_helper._build_cmd("full", "/tmp/duplicity")
+        assert expected_destination in command
         assert "/tmp/duplicity" in command
+        command = duplicity_helper._build_cmd("list-current-files")
+        assert "duplicity" in command
         assert expected_destination in command
 
     @pytest.mark.parametrize(
@@ -45,17 +47,95 @@ class TestDuplicityHelper:
             ("else", "host", None),
         ],
     )
-    def test_list_current_files_cmd(
-        self, duplicity_helper, backend, remote_backup_url, expected_destination
+    @pytest.mark.parametrize(
+        "time",
+        [
+            ("now"),
+            (328974),
+            ("20220910T15:15:15+02:00"),
+            ("3D4S"),
+        ],
+    )
+    def test_run_cmd_remove_older_than(
+        self, duplicity_helper, backend, remote_backup_url, expected_destination, time
     ):
-        """Verify list-current-files command."""
+        """Verify remove-older-than command through _run_cmd."""
         duplicity_helper.charm_config["backend"] = backend
         duplicity_helper.charm_config["remote_backup_url"] = remote_backup_url
-        command = duplicity_helper.backup_cmd
-        assert expected_destination in command
-        command = duplicity_helper.list_files_cmd
+        command = duplicity_helper._build_cmd("remove-older-than", time)
         assert "duplicity" in command
         assert expected_destination in command
+        assert "--force" in command
+        assert str(time) in command
+        assert "remove-older-than" in command
+
+    @pytest.mark.parametrize(
+        "backend,remote_backup_url,expected_destination",
+        [
+            ("scp", "some.host/backups", "scp://some.host/backups/unit-mock-0"),
+            ("rsync", "some.host/backups", "rsync://some.host/backups/unit-mock-0"),
+            ("ftp", "some.host/backups", "ftp://some.host/backups/unit-mock-0"),
+            ("sftp", "some.host/backups", "sftp://some.host/backups/unit-mock-0"),
+            ("s3", "some.host/backups", "s3://some.host/backups/unit-mock-0"),
+            ("file", "some.host/backups", "file://some.host/backups/unit-mock-0"),
+            ("else", "host", None),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "count",
+        [
+            (0),
+            (1),
+            (2204),
+            (999999999999),
+        ],
+    )
+    def test_run_cmd_remove_all_but_n_full(
+        self, duplicity_helper, backend, remote_backup_url, expected_destination, count
+    ):
+        """Verify remove-all-but-n-full command through _run_cmd."""
+        duplicity_helper.charm_config["backend"] = backend
+        duplicity_helper.charm_config["remote_backup_url"] = remote_backup_url
+        command = duplicity_helper._build_cmd("remove-all-but-n-full", count)
+        assert "duplicity" in command
+        assert expected_destination in command
+        assert "--force" in command
+        assert str(count) in command
+        assert "remove-all-but-n-full" in command
+
+    @pytest.mark.parametrize(
+        "backend,remote_backup_url,expected_destination",
+        [
+            ("scp", "some.host/backups", "scp://some.host/backups/unit-mock-0"),
+            ("rsync", "some.host/backups", "rsync://some.host/backups/unit-mock-0"),
+            ("ftp", "some.host/backups", "ftp://some.host/backups/unit-mock-0"),
+            ("sftp", "some.host/backups", "sftp://some.host/backups/unit-mock-0"),
+            ("s3", "some.host/backups", "s3://some.host/backups/unit-mock-0"),
+            ("file", "some.host/backups", "file://some.host/backups/unit-mock-0"),
+            ("else", "host", None),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "count",
+        [
+            (0),
+            (1),
+            (2204),
+            (999999999999),
+        ],
+    )
+    def test_run_cmd_remove_all_inc_of_but_n_full(
+        self, duplicity_helper, backend, remote_backup_url, expected_destination, count
+    ):
+        """Verify remove-all-inc-of-but-n-full command through _run_cmd."""
+        duplicity_helper.charm_config["backend"] = backend
+        duplicity_helper.charm_config["remote_backup_url"] = remote_backup_url
+        command = duplicity_helper._build_cmd("remove-all-inc-of-but-n-full", count)
+        assert "duplicity" in command
+        assert expected_destination in command
+        assert "--force" in command
+        assert str(count) in command
+        assert "remove-all-inc-of-but-n-full" in command
 
     @pytest.mark.parametrize(
         "user,password,expected_destination",
@@ -78,7 +158,7 @@ class TestDuplicityHelper:
         duplicity_helper.charm_config["remote_backup_url"] = remote_backup_url
         duplicity_helper.charm_config["remote_user"] = user
         duplicity_helper.charm_config["remote_password"] = password
-        command = duplicity_helper.backup_cmd
+        command = duplicity_helper._build_cmd("full")
         assert expected_destination in command
 
     @pytest.mark.parametrize(
@@ -124,7 +204,7 @@ class TestDuplicityHelper:
         duplicity_helper.charm_config["disable_encryption"] = disable_encryption
         duplicity_helper.charm_config["gpg_public_key"] = gpg_public_key
         duplicity_helper.charm_config["private_ssh_key"] = private_ssh_key
-        command = duplicity_helper.backup_cmd
+        command = duplicity_helper._build_cmd("full")
         for expected_option in expected_options:
             assert expected_option in command
 
@@ -134,7 +214,7 @@ class TestDuplicityHelper:
     )
     @patch("lib_duplicity.subprocess")
     @patch("lib_duplicity.os")
-    def test_do_backup(
+    def test_executor(
         self,
         mock_os,
         mock_subprocess,
@@ -143,7 +223,7 @@ class TestDuplicityHelper:
         aws_access_key_id,
         encryption_passphrase,
     ):
-        """Verify do backup action."""
+        """Verify executor function."""
         duplicity_helper.charm_config["aws_secret_access_key"] = aws_secret_access_key
         duplicity_helper.charm_config["aws_access_key_id"] = aws_access_key_id
         duplicity_helper.charm_config["encryption_passphrase"] = encryption_passphrase
@@ -155,6 +235,36 @@ class TestDuplicityHelper:
             call("AWS_ACCESS_KEY_ID", aws_access_key_id),
         ]
         mock_os.environ.__setitem__.assert_has_calls(calls, any_order=True)
+
+    @patch("lib_duplicity.subprocess")
+    def test_do_backup(self, mock_subprocess, duplicity_helper):
+        """Verify do_backup action."""
+        duplicity_helper.do_backup()
+        mock_subprocess.check_output.assert_called_once()
+
+    @patch("lib_duplicity.subprocess")
+    def test_list_current_files(self, mock_subprocess, duplicity_helper):
+        """Verify list_current_files action."""
+        duplicity_helper.list_current_files()
+        mock_subprocess.check_output.assert_called_once()
+
+    @patch("lib_duplicity.subprocess")
+    def test_remove_older_than(self, mock_subprocess, duplicity_helper):
+        """Verify remove_older_than action."""
+        duplicity_helper.remove_older_than(time="now")
+        mock_subprocess.check_output.assert_called_once()
+
+    @patch("lib_duplicity.subprocess")
+    def test_remove_all_but_n_full(self, mock_subprocess, duplicity_helper):
+        """Verify remove_all_but_n_full action."""
+        duplicity_helper.remove_all_but_n_full(count=1)
+        mock_subprocess.check_output.assert_called_once()
+
+    @patch("lib_duplicity.subprocess")
+    def test_remove_all_inc_of_but_n_full(self, mock_subprocess, duplicity_helper):
+        """Verify remove_all_inc_of_but_n_full action."""
+        duplicity_helper.remove_all_inc_of_but_n_full(count=1)
+        mock_subprocess.check_output.assert_called_once()
 
     @pytest.mark.parametrize(
         "backup_frequency,expected_frequency",

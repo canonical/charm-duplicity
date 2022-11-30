@@ -52,6 +52,64 @@ class TestActions:
         mock_list_current_files.assert_called_with(action_args)
         assert mock_remove.called == error_path_exists
 
+    @pytest.mark.parametrize("error_path_exists", [True, False])
+    @patch("actions.remove_older_than")
+    @patch("actions.os.path.exists")
+    @patch("actions.os.remove")
+    def test_remove_older_than_action_run_success(
+        self,
+        mock_remove,
+        mock_exists,
+        mock_remove_older_than,
+        error_path_exists,
+    ):
+        """Verify remove_older_than action."""
+        action_args = ["actions/remove_older_than"]
+        mock_exists.return_value = error_path_exists
+        actions.ACTIONS["remove_older_than"] = mock_remove_older_than
+        actions.main(action_args)
+        mock_remove_older_than.assert_called_with(action_args)
+        assert mock_remove.called == error_path_exists
+
+    @pytest.mark.parametrize("error_path_exists", [True, False])
+    @patch("actions.remove_all_but_n_full")
+    @patch("actions.os.path.exists")
+    @patch("actions.os.remove")
+    def test_remove_all_but_n_full_run_success(
+        self,
+        mock_remove,
+        mock_exists,
+        mock_remove_all_but_n_full,
+        error_path_exists,
+    ):
+        """Verify remove_all_but_n_full action."""
+        action_args = ["actions/remove_all_but_n_full"]
+        mock_exists.return_value = error_path_exists
+        actions.ACTIONS["remove_all_but_n_full"] = mock_remove_all_but_n_full
+        actions.main(action_args)
+        mock_remove_all_but_n_full.assert_called_with(action_args)
+        assert mock_remove.called == error_path_exists
+
+    @pytest.mark.parametrize("error_path_exists", [True, False])
+    @patch("actions.remove_all_inc_of_but_n_full")
+    @patch("actions.os.path.exists")
+    @patch("actions.os.remove")
+    def test_remove_all_inc_of_but_n_full_run_success(
+        self,
+        mock_remove,
+        mock_exists,
+        mock_remove_all_inc_of_but_n_full,
+        error_path_exists,
+    ):
+        """Verify remove_all_inc_of_but_n_full action."""
+        action_args = ["actions/remove_all_inc_of_but_n_full"]
+        mock_exists.return_value = error_path_exists
+        mock_temp = mock_remove_all_inc_of_but_n_full
+        actions.ACTIONS["remove_all_inc_of_but_n_full"] = mock_temp
+        actions.main(action_args)
+        mock_remove_all_inc_of_but_n_full.assert_called_with(action_args)
+        assert mock_remove.called == error_path_exists
+
     @patch("actions.do_backup")
     @patch("actions.clear_flag")
     @patch("actions.os.remove")
@@ -101,7 +159,7 @@ class TestActions:
             assert type(exception_raised) == type(e)
             for expected_contain in expected_fail_contains:
                 assert expected_contain in str(e)
-        mock_hookenv.function_fail.assert_called()
+        mock_hookenv.action_fail.assert_called()
         mock_remove.assert_not_called()
         mock_clear_flag.assert_not_called()
 
@@ -118,7 +176,7 @@ class TestDoBackupAction:
         expected_dict_input = dict(output=result.decode("utf-8"))
         actions.do_backup()
         mock_helper.do_backup.assert_called_once()
-        mock_hookenv.function_set.called_with(expected_dict_input)
+        mock_hookenv.action_set.called_with(expected_dict_input)
 
 
 class TestListCurrentFilesAction:
@@ -133,4 +191,49 @@ class TestListCurrentFilesAction:
         expected_dict_input = dict(output=result.decode("utf-8"))
         actions.list_current_files()
         mock_helper.list_current_files.assert_called_once()
-        mock_hookenv.function_set.called_with(expected_dict_input)
+        mock_hookenv.action_set.called_with(expected_dict_input)
+
+
+class TestRemoveOlderThanAction:
+    """Verify remove-older-than action."""
+
+    @patch("actions.helper")
+    @patch("actions.hookenv")
+    def test_remove_older_than(self, mock_hookenv, mock_helper):
+        """Verify remove-older-than action."""
+        result = "action_output".encode("utf-8")
+        mock_helper.remove_older_than.return_value = result
+        expected_dict_input = dict(output=result.decode("utf-8"))
+        actions.remove_older_than()
+        mock_helper.remove_older_than.assert_called_once()
+        mock_hookenv.action_set.called_with(expected_dict_input)
+
+
+class TestRemoveAllButNFullAction:
+    """Verify remove-all-but-n-full action."""
+
+    @patch("actions.helper")
+    @patch("actions.hookenv")
+    def test_remove_all_but_n_full(self, mock_hookenv, mock_helper):
+        """Verify remove-all-but-n-full action."""
+        result = "action_output".encode("utf-8")
+        mock_helper.remove_all_but_n_full.return_value = result
+        expected_dict_input = dict(output=result.decode("utf-8"))
+        actions.remove_all_but_n_full()
+        mock_helper.remove_all_but_n_full.assert_called_once()
+        mock_hookenv.action_set.called_with(expected_dict_input)
+
+
+class TestRemoveAllIncOfButNFullAction:
+    """Verify remove-all-inc-of-but-n-full action."""
+
+    @patch("actions.helper")
+    @patch("actions.hookenv")
+    def test_remove_all_inc_of_but_n_full(self, mock_hookenv, mock_helper):
+        """Verify remove-all-inc-of-but-n-full action."""
+        result = "action_output".encode("utf-8")
+        mock_helper.remove_all_inc_of_but_n_full.return_value = result
+        expected_dict_input = dict(output=result.decode("utf-8"))
+        actions.remove_all_inc_of_but_n_full()
+        mock_helper.remove_all_inc_of_but_n_full.assert_called_once()
+        mock_hookenv.action_set.called_with(expected_dict_input)

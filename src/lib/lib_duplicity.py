@@ -28,42 +28,20 @@ class DuplicityHelper:
         """Introduce configurations."""
         self.charm_config = hookenv.config()
 
-    @property
-    def backup_cmd(self):
-        """Juju action do-backup handler."""
-        cmd = ["duplicity"]
-        if self.charm_config.get("private_ssh_key"):
-            if self.charm_config.get("backend") == "rsync":
-                cmd.append(
-                    '--rsync-options=-e "ssh -i {}"'.format(PRIVATE_SSH_KEY_PATH)
-                )
-            else:
-                cmd.append(
-                    "--ssh-options=-oIdentityFile={}".format(PRIVATE_SSH_KEY_PATH)
-                )
-        # later switch to
-        # cmd.append('full' if self.charm_config.get('full_backup') else 'incr')
-        # when full_backup implemented
-        cmd.append("full")
-        cmd.extend([self.charm_config.get("aux_backup_directory"), self._backup_url()])
+    def _build_cmd(self, duplicity_command, *args):
+        """Duplicity command builder."""
+        cmd = ["duplicity", duplicity_command]
+        cmd.extend([str(arg) for arg in args])
+        cmd.append(self._backup_url())
         cmd.extend(self._additional_options())
+        if "remove" in duplicity_command:
+            cmd.append("--force")
         return cmd
 
-    @property
-    def list_files_cmd(self):
-        """Juju action list-current-files handler."""
-        cmd = ["duplicity", "list-current-files", self._backup_url()]
-        if self.charm_config.get("private_ssh_key"):
-            if self.charm_config.get("backend") == "rsync":
-                cmd.append(
-                    '--rsync-options=-e "ssh -i {}"'.format(PRIVATE_SSH_KEY_PATH)
-                )
-            else:
-                cmd.append(
-                    "--ssh-options=-oIdentityFile={}".format(PRIVATE_SSH_KEY_PATH)
-                )
-        cmd.extend(self._additional_options())
-        return cmd
+    def _executor(self, cmd):
+        self._set_environment_vars()
+        self.safe_log("Duplicity Command: {}".format(cmd))
+        return subprocess.check_output(cmd, stderr=subprocess.STDOUT)
 
     def _backup_url(self):
         """Remote URL.
@@ -128,6 +106,16 @@ class DuplicityHelper:
         # backups named after the unit
         cmd = []
 
+        if self.charm_config.get("private_ssh_key"):
+            if self.charm_config.get("backend") == "rsync":
+                cmd.append(
+                    '--rsync-options=-e "ssh -i {}"'.format(PRIVATE_SSH_KEY_PATH)
+                )
+            else:
+                cmd.append(
+                    "--ssh-options=-oIdentityFile={}".format(PRIVATE_SSH_KEY_PATH)
+                )
+
         if self.charm_config.get("disable_encryption"):
             cmd.append("--no-encryption")
         elif self.charm_config.get("gpg_public_key"):
@@ -175,12 +163,10 @@ class DuplicityHelper:
         :param: kwargs
         :type: dictionary of values that may be used instead of config values
         """
-        self._set_environment_vars()
-        cmd = self.backup_cmd
-        self.safe_log("Duplicity Command: {}".format(cmd))
+        cmd = self._build_cmd("full", self.charm_config.get("aux_backup_directory"))
         if self.charm_config.get("backend") == "rsync":
             self.create_remote_dirs()
-        return subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        return self._executor(cmd)
 
     def safe_log(self, message, level=hookenv.INFO):
         """Replace password in the log with ***."""
@@ -241,10 +227,8 @@ class DuplicityHelper:
         :param: kwargs
         :type: dictionary of values that may be used instead of config values
         """
-        self._set_environment_vars()
-        cmd = self.list_files_cmd
-        self.safe_log("Duplicity Command: {}".format(cmd))
-        return subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        cmd = self._build_cmd("list-current-files")
+        return self._executor(cmd)
 
     def restore(self):
         # TODO
@@ -252,20 +236,32 @@ class DuplicityHelper:
         """Restore the full monty or selected folders/files."""
         raise NotImplementedError()
 
-    def remove_older_than(self):
-        # TODO
-        # duplicity remove-older-than time [options] target_url
-        """Delete all backup sets older than the given time."""
-        raise NotImplementedError()
+    def remove_older_than(self, time):
+        """Delete all backup sets older than the given time.
 
-    def remove_all_but_n_full(self):
-        # TODO
-        # duplicity remove-all-but-n-full <count> <target_url>
-        """Keep the last count full backups and associated incremental sets."""
-        raise NotImplementedError()
+        :param: kwargs
+        :type: dictionary of values that may be used instead of config values
+            - used types from kwargs: time
+        """
+        cmd = self._build_cmd("remove-older-than", time)
+        return self._executor(cmd)
 
-    def remove_all_inc_of_but_n_full(self):
-        # TODO
-        # duplicity remove-all-inc-of-but-n-full <count> <target_url>
-        """Keep only old full backups and not their increments."""
-        raise NotImplementedError()
+    def remove_all_but_n_full(self, count):
+        """Keep the last count full backups and associated incremental sets.
+
+        :param: kwargs
+        :type: dictionary of values that may be used instead of config values
+            - used types from kwargs: count
+        """
+        cmd = self._build_cmd("remove-all-but-n-full", count)
+        return self._executor(cmd)
+
+    def remove_all_inc_of_but_n_full(self, count):
+        """Keep only old full backups and not their increments.
+
+        :param: kwargs
+        :type: dictionary of values that may be used instead of config values
+            - used types from kwargs: count
+        """
+        cmd = self._build_cmd("remove-all-inc-of-but-n-full", count)
+        return self._executor(cmd)

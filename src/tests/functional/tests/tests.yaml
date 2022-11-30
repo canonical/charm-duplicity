@@ -4,6 +4,9 @@ tests:
   - tests.test_duplicity.DuplicityEncryptionValidationTest
   - tests.test_duplicity.DuplicityBackupCommandTest
   - tests.test_duplicity.DuplicityListFilesCommandTest
+  - tests.test_duplicity.DuplicityRemoveOlderThanCommandTest
+  - tests.test_duplicity.DuplicityRemoveAllButNFullCommandTest
+  - tests.test_duplicity.DuplicityRemoveAllIncOfButNFullCommandTest
 configure:
   - tests.configure.set_ubuntu_password_on_backup_host
   - tests.configure.set_ssh_password_access_on_backup_host
