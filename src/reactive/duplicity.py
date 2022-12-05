@@ -28,7 +28,8 @@ from charms.reactive import (
 
 import croniter
 
-from lib_duplicity import DuplicityHelper, safe_remove_backup_cron
+from lib_duplicity import DuplicityHelper
+from lib_duplicity import safe_remove_backup_cron, safe_remove_deletion_cron
 
 PRIVATE_SSH_KEY_PATH = "/root/.ssh/duplicity_id_rsa"
 PLUGINS_DIR = "/usr/local/lib/nagios/plugins/"
@@ -159,6 +160,65 @@ def validate_cron_frequency():
     clear_flag("duplicity.invalid_backup_frequency")
 
 
+def is_valid_retention_period(retention_period):
+    """Check if retention period is valid.
+
+    Valid options are: <n>d, <n>h for n days or n hours, bot not both.
+    """
+    if retention_period == "manual":
+        return True
+    if len(retention_period) > 1:
+        if retention_period[-1] in ["d", "h"]:
+            if retention_period[:-1].isdigit():
+                if int(retention_period[:-1]) >= 1:
+                    return True
+    return False
+
+
+def is_valid_deletion_frequency(cron_frequency):
+    """Check if deletion frequency is valid.
+
+    Valid options are: hourly, daily, and any valid cron string.
+    """
+    if cron_frequency in ["hourly", "daily"]:
+        return True
+    return croniter.croniter.is_valid(cron_frequency)
+
+
+@when_any(
+    "config.changed.retention_period",
+    "config.changed.deletion_frequency",
+)
+def validate_retention():
+    """Check how retention period and deletion frequency are configured.
+
+    If any one of the two configs are erroneous, do not create deletion cron.
+    Otherwise create a crontab to do the deletion of backups.
+    """
+    retention_period = config.get("retention_period")
+    if not is_valid_retention_period(retention_period):
+        set_flag("duplicity.remove_deletion_cron")
+        set_flag("duplicity.invalid_retention_period")
+        return
+    else:
+        # important to clear invalid_retention_period here, otherwise the unit
+        # can think it is still blocked on invalid retention period when it
+        # should not be
+        clear_flag("duplicity.invalid_retention_period")
+        if retention_period == "manual":
+            set_flag("duplicity.remove_deletion_cron")
+            return
+        # retention period is valid and not manual
+        # now check the validity of deletion frequency
+        if not is_valid_deletion_frequency(config.get("deletion_frequency")):
+            set_flag("duplicity.remove_deletion_cron")
+            set_flag("duplicity.invalid_deletion_frequency")
+            return
+    clear_flag("duplicity.invalid_deletion_frequency")
+    # Now both retention and frequency are valid
+    set_flag("duplicity.create_deletion_cron")
+
+
 @when_any(
     "config.changed.encryption_passphrase",
     "config.changed.gpg_public_key",
@@ -181,7 +241,7 @@ def check_status():
     hookenv.atexit(assess_status)
 
 
-def assess_status():
+def assess_status():  # pylint: disable=C901
     """All the possible status."""
     if is_flag_set("duplicity.invalid_remote_backup_url"):
         hookenv.status_set(
@@ -238,6 +298,22 @@ def assess_status():
             ),
         )
         return
+    if is_flag_set("duplicity.invalid_retention_period"):
+        hookenv.status_set(
+            workload_state="blocked",
+            message='Invalid value "{}" for "retention_period"'.format(
+                config.get("retention_period")
+            ),
+        )
+        return
+    if is_flag_set("duplicity.invalid_deletion_frequency"):
+        hookenv.status_set(
+            workload_state="blocked",
+            message='Invalid value "{}" for "deletion_frequency"'.format(
+                config.get("deletion_frequency")
+            ),
+        )
+        return
     hookenv.status_set("active", "Ready")
 
 
@@ -252,6 +328,19 @@ def create_backup_cron():
     helper.setup_backup_cron()
     hookenv.status_set("active", "Rendered duplicity crontab")
     clear_flag("duplicity.create_backup_cron")
+
+
+@when("duplicity.create_deletion_cron")
+def create_deletion_cron():
+    """Create backup crontab.
+
+    Finalizes the backup cron script when duplicity has been configured
+    successfully. The cron script will be a call to juju run-action do-backup
+    """
+    hookenv.status_set("maintenance", "Rendering duplicity crontab for deletion")
+    helper.setup_deletion_cron()
+    hookenv.status_set("active", "Rendered duplicity crontab for deletion")
+    clear_flag("duplicity.create_deletion_cron")
 
 
 @when("duplicity.remove_backup_cron")
@@ -270,6 +359,26 @@ def remove_backup_cron():
     )
     safe_remove_backup_cron()
     clear_flag("duplicity.remove_backup_cron")
+
+
+@when("duplicity.remove_deletion_cron")
+def remove_deletion_cron():
+    """Remove backup crontab.
+
+    Stops and removes the backup cron in case of duplicity not being configured
+    correctly or manual option is set. The former ensures backups won't run
+    under an incorrect config.
+    """
+    retention_period = config.get("retention_period")
+    cron_deletion_frequency = config.get("deletion_frequency")
+    hookenv.log(
+        "Retention period is set to {} and deletion frequency set to {}. \
+            Skipping or removing cron setup.".format(
+            retention_period, cron_deletion_frequency
+        )
+    )
+    safe_remove_deletion_cron()
+    clear_flag("duplicity.remove_deletion_cron")
 
 
 @when("config.changed.private_ssh_key")
@@ -344,3 +453,4 @@ def stop():
     configured correctly or manual.
     """
     safe_remove_backup_cron()
+    safe_remove_deletion_cron()
