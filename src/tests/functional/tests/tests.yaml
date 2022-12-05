@@ -1,6 +1,7 @@
 charm_name: duplicity
 tests:
   - tests.test_duplicity.DuplicityBackupCronTest
+  - tests.test_duplicity.DuplicityDeletionCronTest
   - tests.test_duplicity.DuplicityEncryptionValidationTest
   - tests.test_duplicity.DuplicityBackupCommandTest
   - tests.test_duplicity.DuplicityListFilesCommandTest

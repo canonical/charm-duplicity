@@ -8,7 +8,8 @@ from charmhelpers.core import hookenv, templating
 from fabric import Connection
 
 BACKUP_CRON_FILE = "/etc/cron.d/periodic_backup"
-BACKUP_CRON_LOG_PATH = "/var/log/duplicity"
+DELETION_CRON_FILE = "/etc/cron.d/periodic_deletion"
+CRON_LOG_PATH = "/var/log/duplicity"
 ROOT_KNOWN_HOSTS_PATH = "/root/.ssh/known_hosts"
 PRIVATE_SSH_KEY_PATH = "/root/.ssh/duplicity_id_rsa"
 
@@ -19,6 +20,14 @@ def safe_remove_backup_cron():
         hookenv.log("Removing backup cron file.", level=hookenv.DEBUG)
         os.remove(BACKUP_CRON_FILE)
         hookenv.log("Backup cron file removed.", level=hookenv.DEBUG)
+
+
+def safe_remove_deletion_cron():
+    """Delete deletion crontab."""
+    if os.path.exists(DELETION_CRON_FILE):
+        hookenv.log("Removing deletion cron file.", level=hookenv.DEBUG)
+        os.remove(DELETION_CRON_FILE)
+        hookenv.log("Deletion cron file removed.", level=hookenv.DEBUG)
 
 
 class DuplicityHelper:
@@ -127,25 +136,52 @@ class DuplicityHelper:
     def setup_backup_cron(self):
         """Prepare the backup cron to run on the unit.
 
-        Renders the cron and ensures logging
-        directory exists.
+        Renders the cron and ensures logging directory exists.
         """
-        if not os.path.exists(BACKUP_CRON_LOG_PATH):
-            os.mkdir(BACKUP_CRON_LOG_PATH)
+        if not os.path.exists(CRON_LOG_PATH):
+            os.mkdir(CRON_LOG_PATH)
         self._render_backup_cron()
+
+    def setup_deletion_cron(self):
+        """Prepare the deletion cron to run on the unit.
+
+        Renders the cron and ensures logging directory exists.
+        """
+        if not os.path.exists(CRON_LOG_PATH):
+            os.mkdir(CRON_LOG_PATH)
+        self._render_deletion_cron()
 
     def _render_backup_cron(self):
         """Render backup cron."""
         backup_frequency = self.charm_config.get("backup_frequency")
         if backup_frequency in ["hourly", "daily", "weekly", "monthly"]:
             backup_frequency = "@{}".format(backup_frequency)
-        cron_ctx = dict(
-            frequency=backup_frequency,
-            unit_name=hookenv.local_unit(),
-            charm_dir=hookenv.charm_dir(),
-        )
+        cron_ctx = {
+            "frequency": backup_frequency,
+            "unit_name": hookenv.local_unit(),
+            "charm_dir": hookenv.charm_dir(),
+        }
         templating.render("periodic_backup", BACKUP_CRON_FILE, cron_ctx)
-        with open("/etc/cron.d/periodic_backup", "a") as cron_file:
+        with open(BACKUP_CRON_FILE, "a") as cron_file:
+            cron_file.write("\n")
+
+    def _render_deletion_cron(self):
+        """Render periodic deletion cron."""
+        # Purposefully render hourly or daily crons a little before the
+        # hour or day mark, to prevent the scenario (to an extent) of ending up with
+        # one less backup and instead having one extra backup.
+        deletion_frequency = self.charm_config.get("deletion_frequency")
+        if deletion_frequency == "hourly":
+            deletion_frequency = "40 * * * *"
+        elif deletion_frequency == "daily":
+            deletion_frequency = "0 23 * * *"
+        cron_ctx = {
+            "frequency": deletion_frequency,
+            "unit_name": hookenv.local_unit(),
+            "charm_dir": hookenv.charm_dir(),
+        }
+        templating.render("periodic_deletion", DELETION_CRON_FILE, cron_ctx)
+        with open(DELETION_CRON_FILE, "a") as cron_file:
             cron_file.write("\n")
 
     @staticmethod
@@ -167,6 +203,17 @@ class DuplicityHelper:
         if self.charm_config.get("backend") == "rsync":
             self.create_remote_dirs()
         return self._executor(cmd)
+
+    def do_deletion(self, **kwargs):
+        """Execute the deletion call to duplicity as configured by the charm.
+
+        :param: kwargs
+        :type: dictionary of values that may be used instead of config values
+        """
+        rp = self.charm_config.get("retention_period")
+        if rp[-1] == "d":
+            rp = rp[:-1] + "D"
+        return self.remove_older_than(time=rp)
 
     def safe_log(self, message, level=hookenv.INFO):
         """Replace password in the log with ***."""

@@ -100,9 +100,25 @@ periodic backups, set `backup_frequency` to any of the following:
 - monthly
 - any valid cron schedule string
 
+### Setting Retention
+
+The charm supports periodically cleaning up stale backups. A retention period can
+be set with `retention_period` and the charm will periodically delete backups older
+than this time period. By default, the charm's retention policy is set to manual
+and can be set as follows:
+- manual (*default*)
+- <n>h (number of hour(s) eg. 3h, 60h, 10000h)
+- <n>d (number of day(s) eg. 1d, 7d, 30d, 100000d)
+
+How frequently old backups are deleted can be set with `deletion_frequency`
+which by default is set to daily.
+- daily (runs at 23:00) (*default*)
+- hourly (runs at the 40th minute)
+- any valid cron schedule string
+
 ### Adding NRPE Checks for alerting
 
-Adding NRPE checks allows for alerting when a periodic backup fails to complete.
+Adding NRPE checks allows for alerting when a periodic backup or deletion fails to complete.
 
 ```bash
 juju deploy nrpe
