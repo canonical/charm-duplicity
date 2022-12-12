@@ -147,7 +147,21 @@ class DuplicityDeletionCronTest(BaseDuplicityTest):
     def test_deletion_cron_invalid_retention(self):
         """Verify deletion cron job creation with invalid retention."""
         rp = "x"
-        new_config = {"retention_period": rp, "deletion_frequency": "daily"}
+        new_config = {"retention_period": "30d", "deletion_frequency": "0 23 * * *"}
+        zaza.model.set_application_config(self.application_name, new_config)
+        try:
+            zaza.model.block_until_file_has_contents(
+                application_name=self.application_name,
+                remote_file="/etc/cron.d/periodic_deletion",
+                expected_contents="0 23 * * *",
+                timeout=60,
+            )
+        except concurrent.futures._base.TimeoutError:
+            self.fail(
+                "Cron file /etc/cron.d/period_deletion never populated with "
+                "option <{}>".format("0 23 * * *")
+            )
+        new_config = {"retention_period": rp}
         zaza.model.set_application_config(self.application_name, new_config)
         try:
             duplicity_workload_checker = utils.get_workload_application_status_checker(
