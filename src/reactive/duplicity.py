@@ -11,6 +11,7 @@ See the following for information about reactive charms:
 import base64
 import binascii
 import os
+from re import fullmatch
 
 from charmhelpers import fetch
 from charmhelpers.contrib.charmsupport.nrpe import NRPE
@@ -163,16 +164,10 @@ def validate_cron_frequency():
 def is_valid_retention_period(retention_period):
     """Check if retention period is valid.
 
-    Valid options are: <n>d, <n>h for n days or n hours, bot not both.
+    Valid options are: manual, <n>d, <n>h for n days or n hours, bot not both.
+    n must be an interger > 0.
     """
-    if retention_period == "manual":
-        return True
-    if len(retention_period) > 1:
-        if retention_period[-1] in ["d", "h"]:
-            if retention_period[:-1].isdigit():
-                if int(retention_period[:-1]) >= 1:
-                    return True
-    return False
+    return bool(fullmatch(r"(manual|[1-9]\d*[dh])", retention_period))
 
 
 def is_valid_deletion_frequency(cron_frequency):
@@ -189,8 +184,8 @@ def is_valid_deletion_frequency(cron_frequency):
     "config.changed.retention_period",
     "config.changed.deletion_frequency",
 )
-def validate_retention():
-    """Check how retention period and deletion frequency are configured.
+def validate_retention_policy():
+    """Check what retention period and deletion frequency are configured to.
 
     If any one of the two configs are erroneous, do not create deletion cron.
     Otherwise create a crontab to do the deletion of backups.
@@ -200,20 +195,20 @@ def validate_retention():
         set_flag("duplicity.remove_deletion_cron")
         set_flag("duplicity.invalid_retention_period")
         return
-    else:
-        # important to clear invalid_retention_period here, otherwise the unit
-        # can think it is still blocked on invalid retention period when it
-        # should not be
-        clear_flag("duplicity.invalid_retention_period")
-        if retention_period == "manual":
-            set_flag("duplicity.remove_deletion_cron")
-            return
-        # retention period is valid and not manual
-        # now check the validity of deletion frequency
-        if not is_valid_deletion_frequency(config.get("deletion_frequency")):
-            set_flag("duplicity.remove_deletion_cron")
-            set_flag("duplicity.invalid_deletion_frequency")
-            return
+    # important to clear invalid_retention_period here, otherwise the unit
+    # can think it is still blocked on invalid retention period when it
+    # should not be
+    clear_flag("duplicity.invalid_retention_period")
+    if retention_period == "manual":
+        set_flag("duplicity.remove_deletion_cron")
+        clear_flag("duplicity.invalid_deletion_frequency")
+        return
+    # retention period is valid and not manual
+    # now check the validity of deletion frequency
+    if not is_valid_deletion_frequency(config.get("deletion_frequency")):
+        set_flag("duplicity.remove_deletion_cron")
+        set_flag("duplicity.invalid_deletion_frequency")
+        return
     clear_flag("duplicity.invalid_deletion_frequency")
     # Now both retention and frequency are valid
     set_flag("duplicity.create_deletion_cron")
@@ -332,10 +327,10 @@ def create_backup_cron():
 
 @when("duplicity.create_deletion_cron")
 def create_deletion_cron():
-    """Create backup crontab.
+    """Create deletion crontab.
 
-    Finalizes the backup cron script when duplicity has been configured
-    successfully. The cron script will be a call to juju run-action do-backup
+    Finalizes the deletion cron script when duplicity has been configured
+    successfully. The cron script will be a call to juju run-action remove-older-than
     """
     hookenv.status_set("maintenance", "Rendering duplicity crontab for deletion")
     helper.setup_deletion_cron()
@@ -363,10 +358,10 @@ def remove_backup_cron():
 
 @when("duplicity.remove_deletion_cron")
 def remove_deletion_cron():
-    """Remove backup crontab.
+    """Remove deletion crontab.
 
-    Stops and removes the backup cron in case of duplicity not being configured
-    correctly or manual option is set. The former ensures backups won't run
+    Stops and removes the deletion cron in case of duplicity not being configured
+    correctly or manual option is set. The former ensures deletion won't run
     under an incorrect config.
     """
     retention_period = config.get("retention_period")

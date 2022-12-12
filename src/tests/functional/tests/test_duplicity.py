@@ -147,7 +147,7 @@ class DuplicityDeletionCronTest(BaseDuplicityTest):
     def test_deletion_cron_invalid_retention(self):
         """Verify deletion cron job creation with invalid retention."""
         rp = "x"
-        new_config = {"retention_period": rp}
+        new_config = {"retention_period": rp, "deletion_frequency": "daily"}
         zaza.model.set_application_config(self.application_name, new_config)
         try:
             duplicity_workload_checker = utils.get_workload_application_status_checker(
@@ -166,7 +166,7 @@ class DuplicityDeletionCronTest(BaseDuplicityTest):
     def test_deletion_cron_invalid_frequency(self):
         """Verify deletion cron job creation with invalid frequency."""
         cron_string = "* * * *"
-        new_config = {"deletion_frequency": cron_string}
+        new_config = {"retention_period": "30d", "deletion_frequency": cron_string}
         zaza.model.set_application_config(self.application_name, new_config)
         try:
             duplicity_workload_checker = utils.get_workload_application_status_checker(
@@ -183,7 +183,7 @@ class DuplicityDeletionCronTest(BaseDuplicityTest):
 
     @utils.config_restore("duplicity")
     def test_no_deletion_cron(self):
-        """Verify deletion cron removeal via manual retention trigger."""
+        """Verify deletion cron removal via manual retention trigger."""
         new_config = {"retention_period": "30d", "deletion_frequency": "0 23 * * *"}
         zaza.model.set_application_config(self.application_name, new_config)
         try:

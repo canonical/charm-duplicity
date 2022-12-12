@@ -291,7 +291,7 @@ class TestValidateRetention:
     @patch("duplicity.clear_flag")
     @patch("duplicity.set_flag")
     @patch("duplicity.config")
-    def test_validate_retention(
+    def test_validate_retention_policy(
         self,
         mock_config,
         mock_set_flag,
@@ -303,7 +303,7 @@ class TestValidateRetention:
     ):
         """Verify valid retention functionality."""
         mock_config.get.side_effect = [retention, frequency]
-        duplicity.validate_retention()
+        duplicity.validate_retention_policy()
         clear_calls = []
         set_calls = []
         if is_valid_retention:
@@ -323,13 +323,17 @@ class TestValidateRetention:
     @patch("duplicity.clear_flag")
     @patch("duplicity.set_flag")
     @patch("duplicity.config")
-    def test_validate_retention_manual(
+    def test_validate_retention_policy_manual(
         self, mock_config, mock_set_flag, mock_clear_flag
     ):
         """Verify valid retention functionality against manual configuration."""
         mock_config.get.return_value = "manual"
-        duplicity.validate_retention()
-        mock_clear_flag.assert_called_with("duplicity.invalid_retention_period")
+        duplicity.validate_retention_policy()
+        clear_calls = [
+            call("duplicity.invalid_retention_period"),
+            call("duplicity.invalid_deletion_frequency"),
+        ]
+        mock_clear_flag.assert_has_calls(clear_calls)
         mock_set_flag.assert_called_with("duplicity.remove_deletion_cron")
 
 
