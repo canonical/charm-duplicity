@@ -246,6 +246,97 @@ class TestValidateCronFrequency:
         mock_set_flag.assert_called_with("duplicity.invalid_backup_frequency")
 
 
+class TestValidateRetention:
+    """Verify validation of retention period settings and related functions."""
+
+    @pytest.mark.parametrize(
+        "frequency,is_valid_golden",
+        [
+            ("hourly", True),
+            ("daily", True),
+            ("* * * * *", True),
+            ("* * * *", False),
+        ],
+    )
+    def test_is_valid_deletion_frequency(self, frequency, is_valid_golden):
+        """Verify valid deletion cron frequency."""
+        assert duplicity.is_valid_deletion_frequency(frequency) == is_valid_golden
+
+    @pytest.mark.parametrize(
+        "retention,is_valid_golden",
+        [
+            ("30d", True),
+            ("7d", True),
+            ("manual", True),
+            ("1h", True),
+            ("99h", True),
+            ("7D", False),
+            ("3h7d", False),
+            ("0d", False),
+        ],
+    )
+    def test_is_valid_retention_period_valid(self, retention, is_valid_golden):
+        """Verify valid retention period."""
+        assert duplicity.is_valid_retention_period(retention) == is_valid_golden
+
+    @pytest.mark.parametrize(
+        "retention,frequency,is_valid_retention,is_valid_deletion_freq",
+        [
+            ("30d", "daily", True, True),
+            ("30d", "* *", True, False),
+            ("x", "* *", False, False),
+            ("x", "daily", False, True),
+        ],
+    )
+    @patch("duplicity.clear_flag")
+    @patch("duplicity.set_flag")
+    @patch("duplicity.config")
+    def test_validate_retention_policy(
+        self,
+        mock_config,
+        mock_set_flag,
+        mock_clear_flag,
+        retention,
+        frequency,
+        is_valid_retention,
+        is_valid_deletion_freq,
+    ):
+        """Verify valid retention functionality."""
+        mock_config.get.side_effect = [retention, frequency]
+        duplicity.validate_retention_policy()
+        clear_calls = []
+        set_calls = []
+        if is_valid_retention:
+            clear_calls.append(call("duplicity.invalid_retention_period"))
+            if is_valid_deletion_freq:
+                set_calls.append(call("duplicity.create_deletion_cron"))
+                clear_calls.append(call("duplicity.invalid_deletion_frequency"))
+            else:
+                set_calls.append(call("duplicity.remove_deletion_cron"))
+                set_calls.append(call("duplicity.invalid_deletion_frequency"))
+        else:
+            set_calls.append(call("duplicity.remove_deletion_cron"))
+            set_calls.append(call("duplicity.invalid_retention_period"))
+        mock_clear_flag.assert_has_calls(clear_calls)
+        mock_set_flag.assert_has_calls(set_calls)
+
+    @patch("duplicity.clear_flag")
+    @patch("duplicity.set_flag")
+    @patch("duplicity.config")
+    def test_validate_retention_policy_manual(
+        self, mock_config, mock_set_flag, mock_clear_flag
+    ):
+        """Verify valid retention functionality against manual configuration."""
+        mock_config.get.return_value = "manual"
+        duplicity.validate_retention_policy()
+        clear_calls = [
+            call("duplicity.invalid_retention_period"),
+            call("duplicity.invalid_deletion_frequency"),
+        ]
+        mock_clear_flag.assert_has_calls(clear_calls)
+        mock_set_flag.assert_called_with("duplicity.remove_deletion_cron")
+
+
 class TestUpdateKnownHostKey:
     """Verify updating known host key."""
 
@@ -371,6 +462,16 @@ class TestCheckStatus:
                 'Invalid value "{}" for "backup_frequency"',
                 7,
             ),
+            (
+                "duplicity.invalid_retention_period",
+                'Invalid value "{}" for "retention_period"',
+                8,
+            ),
+            (
+                "duplicity.invalid_deletion_frequency",
+                'Invalid value "{}" for "deletion_frequency"',
+                9,
+            ),
         ],
     )
     @patch("duplicity.is_flag_set")
@@ -414,6 +515,21 @@ def test_create_backup_cron(mock_helper, mock_clear_flag, mock_hookenv):
 
 
 @patch("duplicity.hookenv")
+@patch("duplicity.clear_flag")
+@patch("duplicity.helper")
+def test_create_deletion_cron(mock_helper, mock_clear_flag, mock_hookenv):
+    """Verify creation cron job."""
+    hookenv_calls = [
+        call("maintenance", "Rendering duplicity crontab for deletion"),
+        call("active", "Rendered duplicity crontab for deletion"),
+    ]
+    duplicity.create_deletion_cron()
+    mock_hookenv.status_set.assert_has_calls(hookenv_calls)
+    mock_helper.setup_deletion_cron.assert_called_once()
+    mock_clear_flag.assert_called_with("duplicity.create_deletion_cron")
+
+
+@patch("duplicity.hookenv")
 @patch("duplicity.safe_remove_backup_cron")
 @patch("duplicity.clear_flag")
 def test_remove_backup_cron(
@@ -423,6 +539,18 @@ def test_remove_backup_cron(
     duplicity.remove_backup_cron()
     mock_safe_remove_backup_cron.assert_called_once()
     mock_clear_flag.assert_called_with("duplicity.remove_backup_cron")
+
+
+@patch("duplicity.hookenv")
+@patch("duplicity.safe_remove_deletion_cron")
+@patch("duplicity.clear_flag")
+def test_remove_deletion_cron(
+    mock_clear_flag, mock_safe_remove_deletion_cron, mock_hookenv
+):
+    """Verify removing cron job."""
+    duplicity.remove_deletion_cron()
+    mock_safe_remove_deletion_cron.assert_called_once()
+    mock_clear_flag.assert_called_with("duplicity.remove_deletion_cron")
 
 
 class TestUpdatePrivateSshKey:
@@ -528,7 +656,9 @@ def test_remove_nrpe_checks(mock_clear_flag, nrpe):
 
 
 @patch("duplicity.safe_remove_backup_cron")
-def test_stop(mock_safe_remove_backup_cron):
+@patch("duplicity.safe_remove_deletion_cron")
+def test_stop(mock_safe_remove_backup_cron, mock_safe_remove_deletion_cron):
     """Verify stop hook."""
     duplicity.stop()
     mock_safe_remove_backup_cron.assert_called_once()
+    mock_safe_remove_deletion_cron.assert_called_once()

@@ -112,6 +112,102 @@ class DuplicityBackupCronTest(BaseDuplicityTest):
                 )
 
 
+class DuplicityDeletionCronTest(BaseDuplicityTest):
+    """Base class for Duplicity Backup cron job charm tests."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Run setup for Duplicity Backup cron job charm tests."""
+        super().setUpClass()
+
+    @utils.config_restore("duplicity")
+    def test_deletion_cron_creation(self):
+        """Verify deletion cron job creation."""
+        options = {"30d": "0 23 * * *", "12h": "40 * * * *"}
+        for retention, frequency in options.items():
+            new_config = {
+                "retention_period": retention,
+                "deletion_frequency": frequency,
+            }
+            zaza.model.set_application_config(self.application_name, new_config)
+            try:
+                zaza.model.block_until_file_has_contents(
+                    application_name=self.application_name,
+                    remote_file="/etc/cron.d/periodic_deletion",
+                    expected_contents=frequency,
+                    timeout=60,
+                )
+            except concurrent.futures._base.TimeoutError:
+                self.fail(
+                    "Cron file /etc/cron.d/period_deletion never populated with "
+                    "option <{}>".format(frequency)
+                )
+
+    @utils.config_restore("duplicity")
+    def test_deletion_cron_invalid_retention(self):
+        """Verify deletion cron job creation with invalid retention."""
+        rp = "x"
+        new_config = {"retention_period": rp, "deletion_frequency": "daily"}
+        utils.set_config_and_wait(self.application_name, new_config, delay=5)
+        try:
+            duplicity_workload_checker = utils.get_workload_application_status_checker(
+                self.application_name, "blocked"
+            )
+            _run(zaza.model.async_block_until(duplicity_workload_checker, timeout=15))
+            a_unit = zaza.model.get_units(self.application_name)[0]
+            self.assertEquals(
+                a_unit.workload_status_message,
+                'Invalid value "{}" for "retention_period"'.format(rp),
+            )
+        except concurrent.futures._base.TimeoutError:
+            self.fail("Failed to enter blocked state with invalid retention_period.")
+
+    @utils.config_restore("duplicity")
+    def test_deletion_cron_invalid_frequency(self):
+        """Verify deletion cron job creation with invalid frequency."""
+        cron_string = "* * * *"
+        new_config = {"retention_period": "30d", "deletion_frequency": cron_string}
+        zaza.model.set_application_config(self.application_name, new_config)
+        try:
+            duplicity_workload_checker = utils.get_workload_application_status_checker(
+                self.application_name, "blocked"
+            )
+            _run(zaza.model.async_block_until(duplicity_workload_checker, timeout=15))
+            a_unit = zaza.model.get_units(self.application_name)[0]
+            self.assertEquals(
+                a_unit.workload_status_message,
+                'Invalid value "{}" for "deletion_frequency"'.format(cron_string),
+            )
+        except concurrent.futures._base.TimeoutError:
+            self.fail("Failed to enter blocked state with invalid deletion_frequency.")
+
+    @utils.config_restore("duplicity")
+    def test_no_deletion_cron(self):
+        """Verify deletion cron removal via manual retention trigger."""
+        new_config = {"retention_period": "30d", "deletion_frequency": "0 23 * * *"}
+        zaza.model.set_application_config(self.application_name, new_config)
+        try:
+            zaza.model.block_until_file_has_contents(
+                application_name=self.application_name,
+                remote_file="/etc/cron.d/periodic_deletion",
+                expected_contents="0 23 * * *",
+                timeout=60,
+            )
+        except concurrent.futures._base.TimeoutError:
+            self.fail("Cron file /etc/cron.d/period_deletion never populated correctly")
+        new_config["retention_period"] = "manual"
+        zaza.model.set_application_config(self.application_name, new_config)
+        try:
+            zaza.model.block_until_file_missing(
+                model_name=self.model_name,
+                app=self.application_name,
+                path="/etc/cron.d/periodic_deletion",
+                timeout=60,
+            )
+        except concurrent.futures._base.TimeoutError:
+            self.fail("Cron file /etc/cron.d/periodic_deletion exists")
+
+
 class DuplicityEncryptionValidationTest(BaseDuplicityTest):
     """Verify encryption validation."""
 

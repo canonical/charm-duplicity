@@ -243,6 +243,12 @@ class TestDuplicityHelper:
         mock_subprocess.check_output.assert_called_once()
 
     @patch("lib_duplicity.subprocess")
+    def test_do_deletion(self, mock_subprocess, duplicity_helper):
+        """Verify do_backup action."""
+        duplicity_helper.do_deletion()
+        mock_subprocess.check_output.assert_called_once()
+
+    @patch("lib_duplicity.subprocess")
     def test_list_current_files(self, mock_subprocess, duplicity_helper):
         """Verify list_current_files action."""
         duplicity_helper.list_current_files()
@@ -295,6 +301,33 @@ class TestDuplicityHelper:
         actual_frequency = args[2]["frequency"]
         assert actual_frequency == expected_frequency
 
+    @pytest.mark.parametrize(
+        "deletion_frequency,expected_frequency",
+        [
+            ("hourly", "40 * * * *"),
+            ("daily", "0 23 * * *"),
+            ("* * * * *", "* * * * *"),
+        ],
+    )
+    @patch("lib_duplicity.os")
+    @patch("lib_duplicity.templating")
+    @patch("builtins.open")
+    def test_setup_deletion_cron(
+        self,
+        mock_open,
+        mock_templating,
+        mock_os,
+        duplicity_helper,
+        deletion_frequency,
+        expected_frequency,
+    ):
+        """Verify setup of deletion cron job."""
+        duplicity_helper.charm_config["deletion_frequency"] = deletion_frequency
+        duplicity_helper.setup_deletion_cron()
+        args, _ = mock_templating.render.call_args
+        actual_frequency = args[2]["frequency"]
+        assert actual_frequency == expected_frequency
+
     @pytest.mark.parametrize("exists", [True, False])
     @patch("lib_duplicity.os")
     @patch("lib_duplicity.templating")
@@ -305,6 +338,18 @@ class TestDuplicityHelper:
         """Verify setup_backup_cron create dir."""
         mock_os.path.exists.return_value = exists
         duplicity_helper.setup_backup_cron()
+        assert mock_os.mkdir.called is not exists
+
+    @pytest.mark.parametrize("exists", [True, False])
+    @patch("lib_duplicity.os")
+    @patch("lib_duplicity.templating")
+    @patch("builtins.open")
+    def test_setup_deletion_cron_create_path(
+        self, mock_open, mock_templating, mock_os, duplicity_helper, exists
+    ):
+        """Verify setup_deletion_cron create dir."""
+        mock_os.path.exists.return_value = exists
+        duplicity_helper.setup_deletion_cron()
         assert mock_os.mkdir.called is not exists
 
     @pytest.mark.parametrize(
@@ -346,4 +391,18 @@ class TestLibDuplicity:
         """Verify removing backup cron path if it doesn't exist."""
         mock_os.path.exists.return_value = False
         lib_duplicity.safe_remove_backup_cron()
+        mock_os.remove.assert_not_called()
+
+    @patch("lib_duplicity.os")
+    def test_safe_remove_deletion_cron_path_exists(self, mock_os):
+        """Verify removing deletion cron path if exists."""
+        mock_os.path.exists.return_value = True
+        lib_duplicity.safe_remove_deletion_cron()
+        mock_os.remove.assert_called_once()
+
+    @patch("lib_duplicity.os")
+    def test_safe_remove_deletion_cron_no_exist(self, mock_os):
+        """Verify removing deletion cron path if it doesn't exist."""
+        mock_os.path.exists.return_value = False
+        lib_duplicity.safe_remove_deletion_cron()
         mock_os.remove.assert_not_called()

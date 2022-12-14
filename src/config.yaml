@@ -63,6 +63,22 @@ options:
       Sets the crontab backup frequency to a valid cron string or one of the following:
       hourly|daily|weekly|monthly|manual
       If set to manual, crontab backup will not run.
+  retention_period:
+    type: string
+    default: "manual"
+    description: |
+      Sets the retention period of backups. By default, it is set to 30 days.
+      Can be set to:
+      manual, <n>d, <n>h but not both hours and days. For example, 30d, 7d, 36h, etc...
+      If set to manual, crontab for deletion of stale backups will not run.
+  deletion_frequency:
+    type: string
+    default: "daily"
+    description: |
+      Using retention period, a crontab executes at this frequency to delete stale backups.
+      Sets the periodic deletion cron's frequency to one of the following:
+      hourly|daily|<any valid cron string>
+      Note: hourly runs at 40th min mark every hour and daily runs at 2300 everyday.
   disable_encryption:
     type: boolean
     default: False
