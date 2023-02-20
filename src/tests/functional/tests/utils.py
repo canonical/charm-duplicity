@@ -13,7 +13,7 @@ def get_app_config(app_name):
 
 def get_workload_application_status_checker(application_name, target_status):
     """Return a function for checking the status of all units of an application."""
-    # inner function.
+
     async def checker():
         units = await zaza.model.async_get_units(application_name)
         unit_statuses_blocked = [
