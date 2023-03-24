@@ -328,7 +328,7 @@ class DuplicityHelper:
         except ValueError:
             # key is in PEM format
             return False
-        return True if isinstance(loaded_private_key, rsa.RSAPrivateKey) else False
+        return isinstance(loaded_private_key, rsa.RSAPrivateKey)
 
     def convert_key_to_pem(self, private_key):
         """Convert private key from OpenSSH to PEM format"""
