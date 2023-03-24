@@ -6,7 +6,7 @@ The Duplicity charm provides functionality for both manual and automatic backups
 As the name suggests, it utilizes the Duplicity tool and acts as an easy-to-use-and-configure interface for
 operators to set up backups.
 
-After relating the [Duplicity](http://duplicity.nongnu.org/) to another charm, you can backup a directory to
+After relating the [Duplicity](http://duplicity.nongnu.org/) charm to another charm, you can backup a directory to
 either the local unit, a remote host, or even an AWS S3 bucket. All it takes is a bit of configuration and
 remote destination preparation.
 

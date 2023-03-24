@@ -394,8 +394,17 @@ def update_private_ssh_key():
             )
             set_flag("duplicity.invalid_private_ssh_key")
             return
+
+        converted_key = ''
+        if helper.check_key_rsa_openssh(decoded_private_key):
+            hookenv.log("Detected an RSA private key encoded in OpenSSH format.")
+            converted_key = helper.convert_key_to_pem(decoded_private_key)
+            hookenv.log("Private key has been converted to PEM format.")
         with open(PRIVATE_SSH_KEY_PATH, "w") as f:
-            f.write(decoded_private_key)
+            if converted_key:
+                f.write(converted_key)
+            else:
+                f.write(decoded_private_key)
         os.chmod(PRIVATE_SSH_KEY_PATH, 0o600)
     else:
         if os.path.exists(PRIVATE_SSH_KEY_PATH):

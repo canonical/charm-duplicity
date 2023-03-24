@@ -2,6 +2,13 @@
 import os
 import subprocess
 from urllib.parse import urlparse
+from cryptography.hazmat.primitives.serialization import (
+    load_ssh_private_key,
+    PrivateFormat,
+    Encoding,
+    NoEncryption
+)
+from cryptography.hazmat.primitives.asymmetric import rsa
 
 from charmhelpers.core import hookenv, templating
 
@@ -312,3 +319,24 @@ class DuplicityHelper:
         """
         cmd = self._build_cmd("remove-all-inc-of-but-n-full", count)
         return self._executor(cmd)
+    
+    def check_key_rsa_openssh(self, private_key):
+        """Returns True if private key is both RSA and encoded with OpenSSH format"""
+        try:
+            # try loading an OpenSSH encoded key
+            loaded_private_key = load_ssh_private_key(private_key.encode("utf-8"), password=None)
+        except ValueError:
+            # key is in PEM format
+            return False
+        return True if isinstance(loaded_private_key, rsa.RSAPrivateKey) else False
+
+    def convert_key_to_pem(self, private_key):
+        """Convert private key from OpenSSH to PEM format"""
+        private_key_ssh = load_ssh_private_key(private_key.encode("utf-8"), password=None)
+        private_key_pem = private_key_ssh.private_bytes(
+            encoding=Encoding.PEM,
+            format=PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=NoEncryption()
+        )
+        return private_key_pem.decode()
+
