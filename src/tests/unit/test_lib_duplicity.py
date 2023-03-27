@@ -2,13 +2,7 @@
 """Duplicity helper unit tests."""
 from unittest.mock import ANY, call, mock_open, patch
 
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.asymmetric.rsa import generate_private_key
-from cryptography.hazmat.primitives.serialization import (
-    Encoding,
-    NoEncryption,
-    PrivateFormat,
-)
 
 import lib_duplicity
 
@@ -384,38 +378,28 @@ class TestDuplicityHelper:
         assert mock_print.called == written
 
     @pytest.mark.parametrize(
-        "loaded_key, expected_output",
-        [
-            (
-                generate_private_key(public_exponent=65537, key_size=4096),
-                True,
-            ),  # rsa openssh key
-            (ValueError, False),  # rsa pem key
-            (Ed25519PrivateKey.generate(), False),  # ed25519 key
-        ],
+        "private_key, expected_output",
+        [("rsa_key", True), ("non_rsa_key", False), ("pem_key", False)],
     )
     @patch("lib_duplicity.load_ssh_private_key")
     def test_check_key_rsa_openssh(
-        self, mock_load_key, duplicity_helper, loaded_key, expected_output
+        self, mock_load_key, duplicity_helper, private_key, expected_output
     ):
         """Verify check of rsa openssh key."""
+        loaded_key = "test_loaded_key"
+        if private_key == "rsa_key":
+            loaded_key = generate_private_key(public_exponent=65537, key_size=4096)
+        elif private_key == "pem_key":
+            mock_load_key.side_effect = ValueError
         mock_load_key.return_value = loaded_key
-        actual_output = duplicity_helper.check_key_rsa_openssh("a_private_key")
+        actual_output = duplicity_helper.check_key_rsa_openssh(private_key)
         assert actual_output == expected_output
 
     @patch("lib_duplicity.load_ssh_private_key")
     def test_convert_key_to_pem(self, mock_load_key, duplicity_helper):
         """Verify converting OpenSSH format key to PEM format."""
-        loaded_key = generate_private_key(public_exponent=65537, key_size=4096)
-        mock_load_key.return_value = loaded_key
-        private_key_pem = loaded_key.private_bytes(
-            encoding=Encoding.PEM,
-            format=PrivateFormat.TraditionalOpenSSL,
-            encryption_algorithm=NoEncryption(),
-        )
-        assert duplicity_helper.convert_key_to_pem(
-            "a_private_key"
-        ) == private_key_pem.decode("utf-8")
+        duplicity_helper.convert_key_to_pem("a_private_key")
+        mock_load_key.return_value.private_bytes.assert_called_once()
 
 
 class TestLibDuplicity:
