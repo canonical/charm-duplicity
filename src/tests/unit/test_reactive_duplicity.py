@@ -557,11 +557,8 @@ class TestUpdatePrivateSshKey:
     """Verify updating private ssh key."""
 
     @pytest.mark.parametrize(
-        "check_key, converted_pem, expected_key", 
-        [
-            (True, "a_pem_key", "a_pem_key"), 
-            (False, "a_pem_key", "a_decoded_key")
-        ]
+        "check_key, converted_pem, expected_key",
+        [(True, "a_pem_key", "a_pem_key"), (False, "a_pem_key", "a_decoded_key")],
     )
     @patch("os.chmod")
     @patch("duplicity.helper")
@@ -569,7 +566,15 @@ class TestUpdatePrivateSshKey:
     @patch("duplicity.base64")
     @patch("duplicity.hookenv")
     def test_update_key_success(
-        self, mock_config, mock_base64, mock_clear_flag, mock_helper, os_chmod, check_key, converted_pem, expected_key 
+        self,
+        mock_config,
+        mock_base64,
+        mock_clear_flag,
+        mock_helper,
+        os_chmod,
+        check_key,
+        converted_pem,
+        expected_key,
     ):
         """Verify updating key is successful."""
         private_key = "a_key"
