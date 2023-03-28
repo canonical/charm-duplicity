@@ -389,7 +389,9 @@ def update_private_ssh_key():
             ubuntu_release = host.lsb_release()["DISTRIB_CODENAME"]
             if ubuntu_release == "bionic" or ubuntu_release == "focal":
                 if helper.check_key_rsa_openssh(decoded_private_key):
-                    hookenv.log("Detected an RSA private key encoded in OpenSSH format.")
+                    hookenv.log(
+                        "Detected an RSA private key encoded in OpenSSH format."
+                    )
                     decoded_private_key = helper.convert_key_to_pem(decoded_private_key)
                     hookenv.log("Private key has been converted to PEM format.")
         except (UnicodeDecodeError, binascii.Error) as e:
