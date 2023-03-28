@@ -9,7 +9,7 @@ options:
     type: string
     default: ""
     description: |
-      Accepted values are s3 | scp | sftp | ftp | rsync | file
+      Accepted values are s3 | ssh | scp | ftp | rsync | file
       An empty string will disable backups.
   remote_backup_url:
     type: string
