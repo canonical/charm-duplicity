@@ -386,12 +386,14 @@ class TestDuplicityHelper:
         self, mock_load_key, duplicity_helper, private_key, expected_output
     ):
         """Verify check of rsa openssh key."""
-        loaded_key = "test_loaded_key"
         if private_key == "rsa_key":
-            loaded_key = generate_private_key(public_exponent=65537, key_size=4096)
+            mock_load_key.return_value = generate_private_key(
+                public_exponent=65537, key_size=4096
+            )
         elif private_key == "pem_key":
             mock_load_key.side_effect = ValueError
-        mock_load_key.return_value = loaded_key
+        else:
+            mock_load_key.return_value = private_key
         actual_output = duplicity_helper.check_key_rsa_openssh(private_key)
         assert actual_output == expected_output
 
