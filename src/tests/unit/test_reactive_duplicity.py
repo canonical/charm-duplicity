@@ -556,24 +556,48 @@ def test_remove_deletion_cron(
 class TestUpdatePrivateSshKey:
     """Verify updating private ssh key."""
 
+    @pytest.mark.parametrize(
+        "check_key, converted_pem, expected_key, ubuntu_release",
+        [
+            (True, "a_pem_key", "a_pem_key", "focal"),
+            (False, "a_pem_key", "a_decoded_key", "focal"),
+            (True, "a_pem_key", "a_decoded_key", "jammy"),
+            (False, "a_pem_key", "a_decoded_key", "jammy"),
+        ],
+    )
     @patch("os.chmod")
+    @patch("duplicity.host.lsb_release")
+    @patch("duplicity.helper")
     @patch("duplicity.clear_flag")
     @patch("duplicity.base64")
     @patch("duplicity.hookenv")
     def test_update_key_success(
-        self, mock_config, mock_base64, mock_clear_flag, os_chmod
+        self,
+        mock_config,
+        mock_base64,
+        mock_clear_flag,
+        mock_helper,
+        mock_release,
+        os_chmod,
+        check_key,
+        converted_pem,
+        expected_key,
+        ubuntu_release,
     ):
         """Verify updating key is successful."""
         private_key = "a_key"
         decoded_key = "a_decoded_key"
         mock_config.get.return_value = private_key
         mock_base64.b64decode.return_value.decode.return_value = decoded_key
+        mock_helper.check_key_rsa_openssh.return_value = check_key
+        mock_helper.convert_key_to_pem.return_value = converted_pem
+        mock_release.return_value = {"DISTRIB_CODENAME": ubuntu_release}
         with patch("duplicity.open", mock_open()) as m_open:
             duplicity.update_private_ssh_key()
         mock_base64.b64decode.return_value.decode.assert_called_once()
         m_open.assert_called_with(duplicity.PRIVATE_SSH_KEY_PATH, "w")
         handler = m_open()
-        handler.write.assert_called_with(decoded_key)
+        handler.write.assert_called_with(expected_key)
         mock_clear_flag.assert_called_with("duplicity.invalid_private_ssh_key")
         os_chmod.assert_called_with("/root/.ssh/duplicity_id_rsa", 0o600)
 

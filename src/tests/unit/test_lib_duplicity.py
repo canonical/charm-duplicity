@@ -2,6 +2,8 @@
 """Duplicity helper unit tests."""
 from unittest.mock import ANY, call, mock_open, patch
 
+from cryptography.hazmat.primitives.asymmetric.rsa import generate_private_key
+
 import lib_duplicity
 
 import pytest
@@ -366,7 +368,7 @@ class TestDuplicityHelper:
     def test_update_known_host_file(
         self, mock_print, mock_os, key_exists, path_exists, permission, written
     ):
-        """Verify updating knwon host file."""
+        """Verify updating known host file."""
         known_host_key = "known_host_key"
         read_data = known_host_key if key_exists else "other"
         mock_os.path.exists.return_value = path_exists
@@ -374,6 +376,32 @@ class TestDuplicityHelper:
             lib_duplicity.DuplicityHelper.update_known_host_file(known_host_key)
         m_open.assert_called_with(ANY, permission)
         assert mock_print.called == written
+
+    @pytest.mark.parametrize(
+        "private_key, expected_output",
+        [("rsa_key", True), ("non_rsa_key", False), ("pem_key", False)],
+    )
+    @patch("lib_duplicity.load_ssh_private_key")
+    def test_check_key_rsa_openssh(
+        self, mock_load_key, duplicity_helper, private_key, expected_output
+    ):
+        """Verify check of rsa openssh key."""
+        if private_key == "rsa_key":
+            mock_load_key.return_value = generate_private_key(
+                public_exponent=65537, key_size=4096
+            )
+        elif private_key == "pem_key":
+            mock_load_key.side_effect = ValueError
+        else:
+            mock_load_key.return_value = private_key
+        actual_output = duplicity_helper.check_key_rsa_openssh(private_key)
+        assert actual_output == expected_output
+
+    @patch("lib_duplicity.load_ssh_private_key")
+    def test_convert_key_to_pem(self, mock_load_key, duplicity_helper):
+        """Verify converting OpenSSH format key to PEM format."""
+        duplicity_helper.convert_key_to_pem("a_private_key")
+        mock_load_key.return_value.private_bytes.assert_called_once()
 
 
 class TestLibDuplicity:

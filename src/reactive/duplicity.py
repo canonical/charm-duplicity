@@ -386,6 +386,19 @@ def update_private_ssh_key():
         )
         try:
             decoded_private_key = base64.b64decode(private_key).decode("utf-8")
+            ubuntu_release = host.lsb_release()["DISTRIB_CODENAME"]
+
+            # python3-paramiko supports OpenSSH format keys only after v2.7
+            # but the package version on both bionic and focal are below that.
+            # Refer: https://packages.ubuntu.com/search?keywords=python3-paramiko
+            # So OpenSSH format keys need to be converted to PEM format.
+            if ubuntu_release in {"bionic", "focal"}:
+                if helper.check_key_rsa_openssh(decoded_private_key):
+                    hookenv.log(
+                        "Detected an RSA private key encoded in OpenSSH format."
+                    )
+                    decoded_private_key = helper.convert_key_to_pem(decoded_private_key)
+                    hookenv.log("Private key has been converted to PEM format.")
         except (UnicodeDecodeError, binascii.Error) as e:
             hookenv.log(
                 "Failed to decode private key {} to utf-8 with error: {}.\n"
@@ -394,6 +407,7 @@ def update_private_ssh_key():
             )
             set_flag("duplicity.invalid_private_ssh_key")
             return
+
         with open(PRIVATE_SSH_KEY_PATH, "w") as f:
             f.write(decoded_private_key)
         os.chmod(PRIVATE_SSH_KEY_PATH, 0o600)
