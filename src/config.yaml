@@ -9,7 +9,7 @@ options:
     type: string
     default: ""
     description: |
-      Accepted values are s3 | ssh | scp | ftp | rsync | file
+      Accepted values are s3 | scp | sftp | ftp | rsync | file
       An empty string will disable backups.
   remote_backup_url:
     type: string
@@ -27,7 +27,7 @@ options:
         s3:         's3:other.host[:port]/bucket_name[/prefix]'
                     's3+http://bucket_name[/prefix]'
         scp:        'other.host[:port]/some_dir'
-        ssh:        'other.host[:port]/some_dir'
+        sftp:       'other.host[:port]/some_dir'
   aws_access_key_id:
     type: string
     default: ""
@@ -46,16 +46,13 @@ options:
     type: string
     default: ""
     description: |
-      This value sets the remote host username for ssh or ftp backups. This is
-      required for ftp type backups and optional for ssh, which if unset it
-      will default to using the local hosts username.
+      This value sets the remote host username for scp, ftp or sftp backups.
   remote_password:
     type: string
     default: ""
     description: |
-      This value sets the remote server's password to be used for ssh or ftp
-      backups. This is required for ftp backups and optional for ssh, which if
-      unset may still be able to authenticate via trusted host keys.
+      This value sets the remote server's password to be used for scp, ftp or sftp
+      backups. If unset, it may still be able to authenticate via SSH private key.
   backup_frequency:
     type: string
     default: "manual"
