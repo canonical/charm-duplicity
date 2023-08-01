@@ -15,9 +15,9 @@ options:
       - 'cargo'
       - 'libffi-dev' # Needed to install cryptography, fabric dependency.
       - 'libssl-dev' # same as above
+      - 'pkg-config' # same as above  lp#1968367
     python_packages:
       - fabric
-      - 'cryptography>=3.2,<3.3'
     use_venv: true
-    include_system_packages: true
+    include_system_packages: false
 repo: https://git.launchpad.net/charm-duplicity
