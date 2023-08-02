@@ -125,15 +125,16 @@ class TestActions:
         mock_clear_flag.assert_not_called()
 
     @pytest.mark.parametrize(
-        "exception_raised,expected_fail_contains",
+        "exp_exception, exp_string",
         [
             (
                 CalledProcessError(
                     returncode=2, output="my-error-output".encode("utf-8"), cmd="cmd"
                 ),
-                ["2", "my-error-output"],
+                'Command "cmd" failed with return code "2" and error output:\n'
+                "my-error-output",
             ),
-            (Exception("generic exception"), ["generic exception"]),
+            (Exception("generic exception"), "generic exception"),
         ],
     )
     @patch("actions.hookenv")
@@ -146,20 +147,17 @@ class TestActions:
         mock_clear_flag,
         mock_do_backup,
         mock_hookenv,
-        exception_raised,
-        expected_fail_contains,
+        exp_exception,
+        exp_string,
     ):
         """Verify action returns an error."""
         action_args = ["actions/do-backup"]
-        mock_do_backup.side_effect = exception_raised
+        mock_do_backup.side_effect = exp_exception
         actions.ACTIONS["do-backup"] = mock_do_backup
-        try:
-            actions.main(action_args)
-        except Exception as e:
-            assert type(exception_raised) == type(e)
-            for expected_contain in expected_fail_contains:
-                assert expected_contain in str(e)
-        mock_hookenv.action_fail.assert_called()
+
+        actions.main(action_args)
+
+        mock_hookenv.action_fail.assert_called_with(exp_string)
         mock_remove.assert_not_called()
         mock_clear_flag.assert_not_called()
 
