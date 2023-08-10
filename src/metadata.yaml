@@ -1,6 +1,7 @@
 name: duplicity
 summary: Duplicity offers encrypted bandwidth-efficient backup
 maintainer: Ryan Farrell <Ryan.Farrell@ryancision7250>
+docs: https://discourse.charmhub.io/t/bootstack-charmers-duplicity-docs-index/11338
 description: |
   Duplicity backs directories by producing encrypted tar-format volumes
   and uploading them to a remote or local file server. Because duplicity
