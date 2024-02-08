@@ -1,4 +1,5 @@
 """Unit tests for reactive hooks."""
+
 from unittest.mock import ANY, MagicMock, call, mock_open, patch
 
 from croniter import CroniterBadCronError, CroniterBadDateError, CroniterNotAlphaError

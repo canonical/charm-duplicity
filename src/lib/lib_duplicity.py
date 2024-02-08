@@ -1,4 +1,5 @@
 """Duplicity juju actions."""
+
 import os
 import subprocess
 from urllib.parse import urlparse

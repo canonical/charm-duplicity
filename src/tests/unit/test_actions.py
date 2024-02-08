@@ -1,4 +1,5 @@
 """Unit tests for charm actions."""
+
 from subprocess import CalledProcessError
 from unittest.mock import patch
 

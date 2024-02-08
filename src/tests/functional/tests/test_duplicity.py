@@ -1,4 +1,5 @@
 """Zaza fun tests."""
+
 import asyncio
 import base64
 import concurrent.futures
