@@ -21,6 +21,12 @@ jobs:
       tox-version: "<4"
       working-directory: ./src
 
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup tmate session
+        uses: canonical/action-tmate@main
+
   func:
     uses: canonical/bootstack-actions/.github/workflows/func.yaml@v2
     needs: lint-unit
