@@ -8,6 +8,7 @@ See the following for information about reactive charms:
   * https://jujucharms.com/docs/devel/developer-getting-started
   * https://github.com/juju-solutions/layer-basic#overview
 """
+
 import base64
 import binascii
 import os

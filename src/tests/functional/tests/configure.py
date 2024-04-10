@@ -1,4 +1,5 @@
 """Set up functional tests."""
+
 import logging
 import subprocess
 
