@@ -42,6 +42,7 @@ jobs:
         with:
           provider: lxd
           juju-channel: ${{ matrix.juju-channel }}
+          lxd-channel: "5.20/stable"  # tmp fix until https://github.com/canonical/charmcraft/issues/1640
       - name: Show juju information
         run: |
           juju version
