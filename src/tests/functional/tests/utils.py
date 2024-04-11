@@ -1,4 +1,5 @@
 """Zaza func tests utils."""
+
 from collections import namedtuple
 from functools import wraps
 from time import sleep
