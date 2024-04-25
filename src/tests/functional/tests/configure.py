@@ -22,9 +22,8 @@ def set_ssh_password_access_on_backup_host():
     """Configure ssh access with password on backup host."""
     backup_host_unit = _get_unit("backup-host")
     command = (
-        "sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' "
-        "/etc/ssh/sshd_config && "
-        "service sshd reload"
+        'echo "PasswordAuthentication yes" > '
+        "/etc/ssh/sshd_config.d/01-test-settings.conf && service sshd reload"
     )
     result = zaza.model.run_on_unit(backup_host_unit.name, command, timeout=15)
     _check_run_result(result)

@@ -11,7 +11,7 @@ applications:
     charm: nrpe
 
   duplicity:
-    charm: /tmp/charm-builds/duplicity
+    charm: duplicity
     options:
       backend: file
       remote_backup_url: 'file:///home/ubuntu/somedir'
