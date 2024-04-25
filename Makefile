@@ -27,18 +27,15 @@ help:
 	@echo " make release - run clean, submodules, and build targets"
 	@echo " make lint - run flake8 and black --check"
 	@echo " make black - run black and reformat files"
-	@echo " make proof - run charm proof"
 	@echo " make unittests - run the tests defined in the unittest subdirectory"
 	@echo " make functional - run the tests defined in the functional subdirectory"
 	@echo " make test - run lint, proof, unittests and functional targets"
 	@echo ""
 
 clean:
-	@echo "Cleaning files"
-	@git clean -ffXd -e '!.idea'
-	@echo "Cleaning existing build"
-	@rm -rf ${CHARM_BUILD_DIR}/${CHARM_NAME}
+	@echo "Cleaning charmcraft"
 	@charmcraft clean
+	@echo "Cleaning existing chamr files"
 	@rm -rf ${PROJECTPATH}/${CHARM_NAME}.charm
 
 submodules:
@@ -48,15 +45,13 @@ submodules-update:
 	@git submodule update --init --recursive --remote --merge
 
 build: clean submodules-update
-	@echo "Building charm to directory ${CHARM_BUILD_DIR}/${CHARM_NAME}"
+	@echo "Building charm ${PROJECTPATH}/${CHARM_NAME}.charm"
 	@-git rev-parse --abbrev-ref HEAD > ./src/repo-info
 	@charmcraft -v pack ${BUILD_ARGS}
 	@bash -c ./rename.sh
-	@mkdir -p ${CHARM_BUILD_DIR}/${CHARM_NAME}
-	@unzip ${PROJECTPATH}/${CHARM_NAME}.charm -d ${CHARM_BUILD_DIR}/${CHARM_NAME}
 
 release: clean build
-	@echo "Charm is built at ${CHARM_BUILD_DIR}/${CHARM_NAME}"
+	@echo "Charm is built at ${PROJECTPATH}/${CHARM_NAME}.charm"
 
 lint:
 	@echo "Running lint checks"
@@ -66,17 +61,13 @@ black:
 	@echo "Reformat files with black"
 	@cd src && tox -e black
 
-proof: build
-	@echo "Running charm proof"
-	@charm proof ${CHARM_BUILD_DIR}/${CHARM_NAME}
-
 unittests:
 	@echo "Running unit tests"
 	@cd src && tox -e unit
 
 functional: build
-	@echo "Executing functional tests in ${CHARM_BUILD_DIR}"
-	@cd src && CHARM_LOCATION=${PROJECTPATH} tox -e func
+	@echo "Executing functional tests with ${PROJECTPATH}/${CHARM_NAME}.charm"
+	@cd src && CHARM_LOCATION=${PROJECTPATH} tox -e func -- ${FUNC_ARGS}
 
 test: lint proof unittests functional
 	@echo "Tests completed for charm ${CHARM_NAME}."

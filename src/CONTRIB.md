@@ -49,9 +49,6 @@ make build
 charm build
 ```
 
-You can set various environment variables (e.g. JUJU_REPOSITORY, CHARM_BUILD_DIR) to build into 
-your desired directory. By default, the project will build into /tmp/charm-builds/duplicity. 
-
 ## Running Tests
 
 The following section will review running automated tests in the project.
