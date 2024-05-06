@@ -25,5 +25,5 @@ jobs:
           credentials: "${{ secrets.CHARMHUB_TOKEN }}"
           github-token: "${{ secrets.GITHUB_TOKEN }}"
           channel: "latest/edge"
-          # Note(rgildein): Right now we are not using destructive-mode, since our charmcraft.yaml is designed to run on single build-on with ability to run-on multiple bases. Running with destructive-mode will require align the base defined in for this job being same as it's defined in charmcraft.yaml (build-on).
+          # Note(rgildein): Right now we are not using destructive-mode, since our charmcraft.yaml is designed with a single build-on and the ability to run-on multiple bases. Running with destructive-mode would require aligning the base defined in this job with the one defined in charmcraft.yaml (build-on).
           destructive-mode: false
