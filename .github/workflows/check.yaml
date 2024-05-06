@@ -30,9 +30,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Initialize lxd  # This should dropped once it's implemented on charming-actions itself. https://github.com/canonical/charming-actions/issues/140
-        run: sudo lxd init --auto
+      - uses: canonical/setup-lxd@v0.1.1  # LXD is needed since we are not running with --destructive-mode
       - name: Install charmcraft
         run: sudo snap install charmcraft --edge --classic
       - name: Build charm
-        run: charmcraft -v pack
+        run: charmcraft pack -v
