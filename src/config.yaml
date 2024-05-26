@@ -9,14 +9,17 @@ options:
     type: string
     default: ""
     description: |
-      Accepted values are s3 | scp | sftp | ftp | rsync | file
+      Accepted values are s3 | scp | sftp | ftp | rsync | file | azure
       An empty string will disable backups.
   remote_backup_url:
     type: string
     default: ""
     description: |
       URL to the remote server and its local path to be used as the
-      backup destination.
+      backup destination. 
+      While using azure as a backend:
+      Duplicity will take care to create the container 
+      when performing the backup.  Do not create it manually before.
 
       Backends and their URL formats:
         file:      'file:///some_dir'
@@ -26,6 +29,7 @@ options:
                     'other.host[:port]//absolute_path'
         s3:         's3:other.host[:port]/bucket_name[/prefix]'
                     's3+http://bucket_name[/prefix]'
+        azure:      'azure://'
         scp:        'other.host[:port]/some_dir'
         sftp:       'other.host[:port]/some_dir'
   aws_access_key_id:
@@ -42,6 +46,12 @@ options:
       Secret access key for the AWS IMA user. The user must have a policy that
       grants it privileges to upload to the S3 bucket. This value is required
       when backend='s3'.
+  azure_connection_string:
+    type: string
+    default: ""
+    description: |
+      connection string for the AZURE storage account. This value is required
+      when backend='azure'. 
   remote_user:
     type: string
     default: ""
