@@ -88,7 +88,7 @@ class DuplicityHelper:
                 else:
                     url += "{}@".format(user)
             url += remote_path.replace(prefix, "")
-        elif backend in ["s3", "file"]:
+        elif backend in ["s3", "file","azure"]:
             url = remote_path.replace(prefix, "")
         else:
             return None
@@ -108,6 +108,13 @@ class DuplicityHelper:
         duplicity.
         :return:
         """
+
+        # Set the Azure Credentials. It doesnt matter if they are used or not
+        os.environ["AZURE_CONNECTION_STRING"] = self.charm_config.get(
+            "azure_connection_string"
+        )
+        os.environ["PASSPHRASE"] = self.charm_config.get("encryption_passphrase")
+
         # Set the Aws Credentials. It doesnt matter if they are used or not
         os.environ["AWS_SECRET_ACCESS_KEY"] = self.charm_config.get(
             "aws_secret_access_key"
@@ -346,3 +353,4 @@ class DuplicityHelper:
             encryption_algorithm=NoEncryption(),
         )
         return private_key_pem.decode()
+

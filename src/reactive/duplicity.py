@@ -56,6 +56,7 @@ def install_duplicity():
     fetch.apt_install("python-paramiko")
     fetch.apt_install("python-boto")
     fetch.apt_install("lftp")
+    os.system(f"pip install azure-storage-blob")
     hookenv.status_set("active", "")
     set_flag("duplicity.installed")
 
@@ -64,6 +65,7 @@ def install_duplicity():
     "config.changed.backend",
     "config.changed.aws_access_key_id",
     "config.changed.aws_secret_access_key" "config.changed.known_host_key",
+    "config.changed.azure_connection_string",
     "config.changed.remote_password",
     "config.changed.private_ssh_key",
 )
@@ -72,10 +74,11 @@ def validate_backend():
 
     Validates that the config value for 'backend' is something that duplicity
     can use (see config description for backend for the accepted types). For S3
-    only, check that the AWS IMA credentials are also set.
+    only, check that the AWS IMA credentials are set. For AZURE check connections 
+    string is also set.
     """
     backend = config.get("backend").lower()
-    if backend in ["s3", "scp", "sftp", "ftp", "rsync", "file"]:
+    if backend in ["s3", "scp", "sftp", "ftp", "rsync", "file","azure"]:
         clear_flag("duplicity.invalid_backend")
     else:
         set_flag("duplicity.invalid_backend")
@@ -85,6 +88,12 @@ def validate_backend():
             clear_flag("duplicity.invalid_aws_creds")
         else:
             set_flag("duplicity.invalid_aws_creds")
+            return
+    elif backend == "azure":
+        if config.get("azure_connection_string"):
+            clear_flag("duplicity.invalid_azure_creds")
+        else:
+            set_flag("duplicity.invalid_azure_creds")
             return
     elif backend == "rsync":
         if config.get("private_ssh_key"):
@@ -256,6 +265,12 @@ def assess_status():  # pylint: disable=C901
             workload_state="blocked",
             message='S3 backups require "aws_access_key_id" '
             'and "aws_secret_access_key" to be set',
+        )
+        return
+    if is_flag_set("duplicity.invalid_azure_creds"):
+        hookenv.status_set(
+            workload_state="blocked",
+            message='Azure backups require "azure_connection_string" ',
         )
         return
     if is_flag_set("duplicity.invalid_secure_backend_opts"):
@@ -464,3 +479,4 @@ def stop():
     """
     safe_remove_backup_cron()
     safe_remove_deletion_cron()
+
