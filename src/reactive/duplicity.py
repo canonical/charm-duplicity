@@ -56,7 +56,7 @@ def install_duplicity():
     fetch.apt_install("python-paramiko")
     fetch.apt_install("python-boto")
     fetch.apt_install("lftp")
-    os.system(f"pip install azure-storage-blob")
+    os.system("pip install azure-storage-blob")
     hookenv.status_set("active", "")
     set_flag("duplicity.installed")
 
@@ -74,11 +74,11 @@ def validate_backend():
 
     Validates that the config value for 'backend' is something that duplicity
     can use (see config description for backend for the accepted types). For S3
-    only, check that the AWS IMA credentials are set. For AZURE check connections 
-    string is also set.
+    only, check that the AWS IMA credentials are set. For AZURE, check
+    connection string is also set.
     """
     backend = config.get("backend").lower()
-    if backend in ["s3", "scp", "sftp", "ftp", "rsync", "file","azure"]:
+    if backend in ["s3", "scp", "sftp", "ftp", "rsync", "file", "azure"]:
         clear_flag("duplicity.invalid_backend")
     else:
         set_flag("duplicity.invalid_backend")
@@ -479,4 +479,3 @@ def stop():
     """
     safe_remove_backup_cron()
     safe_remove_deletion_cron()
-
