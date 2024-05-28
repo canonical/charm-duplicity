@@ -51,7 +51,8 @@ options:
     default: ""
     description: |
       connection string for the AZURE storage account. This value is required
-      when backend='azure'. 
+      when backend='azure'.
+      check - https://learn.microsoft.com/en-us/azure/storage/common/storage-configure-connection-string#configure-a-connection-string-for-an-azure-storage-account
   remote_user:
     type: string
     default: ""
