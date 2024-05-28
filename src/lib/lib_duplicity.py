@@ -88,7 +88,7 @@ class DuplicityHelper:
                 else:
                     url += "{}@".format(user)
             url += remote_path.replace(prefix, "")
-        elif backend in ["s3", "file","azure"]:
+        elif backend in ["s3", "file", "azure"]:
             url = remote_path.replace(prefix, "")
         else:
             return None
@@ -108,7 +108,6 @@ class DuplicityHelper:
         duplicity.
         :return:
         """
-
         # Set the Azure Credentials. It doesnt matter if they are used or not
         os.environ["AZURE_CONNECTION_STRING"] = self.charm_config.get(
             "azure_connection_string"
@@ -173,10 +172,16 @@ class DuplicityHelper:
         backup_frequency = self.charm_config.get("backup_frequency")
         if backup_frequency in ["hourly", "daily", "weekly", "monthly"]:
             backup_frequency = "@{}".format(backup_frequency)
+        is_juju3 = subprocess.getoutput("ls /usr/bin/ | grep juju-exec")
+        if is_juju3:
+            juju_binary = "juju-exec"
+        else:
+            juju_binary = "juju-run"
         cron_ctx = {
             "frequency": backup_frequency,
             "unit_name": hookenv.local_unit(),
             "charm_dir": hookenv.charm_dir(),
+            "juju_command": juju_binary,
         }
         templating.render("periodic_backup", BACKUP_CRON_FILE, cron_ctx)
         with open(BACKUP_CRON_FILE, "a") as cron_file:
@@ -192,10 +197,16 @@ class DuplicityHelper:
             deletion_frequency = "40 * * * *"
         elif deletion_frequency == "daily":
             deletion_frequency = "0 23 * * *"
+        is_juju3 = subprocess.getoutput("ls /usr/bin/ | grep juju-exec")
+        if is_juju3:
+            juju_binary = "juju-exec"
+        else:
+            juju_binary = "juju-run"
         cron_ctx = {
             "frequency": deletion_frequency,
             "unit_name": hookenv.local_unit(),
             "charm_dir": hookenv.charm_dir(),
+            "juju_command": juju_binary,
         }
         templating.render("periodic_deletion", DELETION_CRON_FILE, cron_ctx)
         with open(DELETION_CRON_FILE, "a") as cron_file:
@@ -353,4 +364,3 @@ class DuplicityHelper:
             encryption_algorithm=NoEncryption(),
         )
         return private_key_pem.decode()
-
