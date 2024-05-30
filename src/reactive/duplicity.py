@@ -12,12 +12,12 @@ See the following for information about reactive charms:
 import base64
 import binascii
 import os
-import subprocess
 from re import fullmatch
 
 from charmhelpers import fetch
 from charmhelpers.contrib.charmsupport.nrpe import NRPE
 from charmhelpers.core import hookenv, host
+from charmhelpers.fetch.python import packages
 
 from charms.reactive import (
     clear_flag,
@@ -41,18 +41,7 @@ helper = DuplicityHelper()
 config = hookenv.config()
 
 
-def install_in_system_python(package_to_install):
-    """Install dependency in system python.
-
-    The charm use subprocess to call duplicity,
-    which is installed by apt.
-    So the azure-storage-blob has to be installed n system level python
-    """
-    subprocess.run(["sudo", "pip", "install", package_to_install])
-
-    set_flag("duplicity.azure_package_installed")
-
-
+@when("duplicity.upgrade-charm")
 @when_not("duplicity.installed")
 def install_duplicity():
     """Apt install duplicity's dependencies.
@@ -69,7 +58,7 @@ def install_duplicity():
     fetch.apt_install("python-paramiko")
     fetch.apt_install("python-boto")
     fetch.apt_install("lftp")
-    install_in_system_python("azure-storage-blob")
+    packages.pip_install("azure-storage-blob")
     hookenv.status_set("active", "")
     set_flag("duplicity.installed")
 
@@ -122,12 +111,6 @@ def validate_backend():
         else:
             set_flag("duplicity.invalid_secure_backend_opts")
             return
-
-
-@when_not("duplicity.azure_package_installed")
-def install_azure_package():
-    """If charm is refreshed it will install the azure package."""
-    install_in_system_python("azure-storage-blob")
 
 
 @when("config.changed.known_host_key")
