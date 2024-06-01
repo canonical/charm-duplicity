@@ -1,1 +1,1 @@
-{{ frequency }} root /usr/bin/{{ juju_exec_binary }} {{ unit_name }} {{ charm_dir }}/scripts/periodic_backup.py
+{{ frequency }} root /usr/bin/juju-exec {{ unit_name }} {{ charm_dir }}/scripts/periodic_backup.py
