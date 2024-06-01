@@ -162,6 +162,43 @@ class TestValidateBackend:
         mock_set_flag.assert_called_with("duplicity.invalid_backend")
         mock_clear_flag.assert_not_called()
 
+    @patch("duplicity.set_flag")
+    @patch("duplicity.clear_flag")
+    @patch("duplicity.config")
+    def test_validate_backend_success_azure(
+        self, mock_config, mock_clear_flag, mock_set_flag
+    ):
+        """Verify valid azure backend."""
+        backend = "azure"
+        mock_config.get.side_effect = [backend, "azure_conn_string"]
+        expected_calls = [
+            call("duplicity.invalid_backend"),
+            call("duplicity.invalid_azure_creds"),
+        ]
+        duplicity.validate_backend()
+        mock_clear_flag.assert_has_calls(calls=expected_calls)
+        mock_set_flag.assert_not_called()
+
+    @pytest.mark.parametrize("conn_string", ["some_string", ""])
+    @patch("duplicity.set_flag")
+    @patch("duplicity.clear_flag")
+    @patch("duplicity.config")
+    def test_invalid_backend_azure(
+        self, mock_config, mock_clear_flag, mock_set_flag, conn_string
+    ):
+        """Verify invalid azure backend."""
+        backend = "azure"
+        side_effects = [backend, conn_string]
+        mock_config.get.side_effect = side_effects
+        duplicity.validate_backend()
+        mock_clear_flag.assert_any_call("duplicity.invalid_backend")
+
+        if conn_string:
+            mock_clear_flag.assert_called_with("duplicity.invalid_azure_creds")
+            mock_set_flag.assert_not_called()
+        else:
+            mock_set_flag.assert_called_with("duplicity.invalid_azure_creds")
+
 
 @pytest.mark.parametrize(
     "backup_dir,path_exists", [("my dir", False), ("my dir", True), ("", True)]
@@ -436,42 +473,47 @@ class TestCheckStatus:
                 2,
             ),
             (
+                "duplicity.invalid_azure_creds",
+                'Azure backups require "azure_connection_string" ',
+                3,
+            ),
+            (
                 "duplicity.invalid_secure_backend_opts",
                 "{} backend requires known_host_key "
                 'and either "remote_password" or "private_ssh_key" to be set',
-                3,
+                4,
             ),
             (
                 "duplicity.invalid_rsync_key",
                 "rsync backend requires private_ssh_key. remote_password auth "
                 "not supported",
-                4,
+                5,
             ),
             (
                 "duplicity.invalid_encryption_method",
                 "Must set either an encryption passphrase, "
                 "GPG public key, or disable encryption",
-                5,
+                6,
             ),
             (
                 "duplicity.invalid_private_ssh_key",
                 "Invalid private_ssh_key. ensure that key is base64 encoded",
-                6,
+                7,
             ),
             (
                 "duplicity.invalid_backup_frequency",
                 'Invalid value "{}" for "backup_frequency"',
-                7,
+                8,
             ),
             (
                 "duplicity.invalid_retention_period",
                 'Invalid value "{}" for "retention_period"',
-                8,
+                9,
             ),
             (
                 "duplicity.invalid_deletion_frequency",
                 'Invalid value "{}" for "deletion_frequency"',
-                9,
+                10,
             ),
         ],
     )

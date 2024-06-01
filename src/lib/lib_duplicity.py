@@ -167,24 +167,15 @@ class DuplicityHelper:
             os.mkdir(CRON_LOG_PATH)
         self._render_deletion_cron()
 
-    def _get_juju_exec_binary(self):
-        is_juju3 = subprocess.getoutput("ls /usr/bin/ | grep juju-exec")
-        if is_juju3:
-            return "juju-exec"
-        else:
-            return "juju-run"
-
     def _render_backup_cron(self):
         """Render backup cron."""
         backup_frequency = self.charm_config.get("backup_frequency")
         if backup_frequency in ["hourly", "daily", "weekly", "monthly"]:
             backup_frequency = "@{}".format(backup_frequency)
-        juju_exec_binary = self._get_juju_exec_binary()
         cron_ctx = {
             "frequency": backup_frequency,
             "unit_name": hookenv.local_unit(),
             "charm_dir": hookenv.charm_dir(),
-            "juju_exec_binary": juju_exec_binary,
         }
         templating.render("periodic_backup", BACKUP_CRON_FILE, cron_ctx)
         with open(BACKUP_CRON_FILE, "a") as cron_file:
@@ -200,12 +191,10 @@ class DuplicityHelper:
             deletion_frequency = "40 * * * *"
         elif deletion_frequency == "daily":
             deletion_frequency = "0 23 * * *"
-        juju_exec_binary = self._get_juju_exec_binary()
         cron_ctx = {
             "frequency": deletion_frequency,
             "unit_name": hookenv.local_unit(),
             "charm_dir": hookenv.charm_dir(),
-            "juju_exec_binary": juju_exec_binary,
         }
         templating.render("periodic_deletion", DELETION_CRON_FILE, cron_ctx)
         with open(DELETION_CRON_FILE, "a") as cron_file:
