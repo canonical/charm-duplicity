@@ -74,7 +74,7 @@ def install_duplicity():
 
 @hook("upgrade-charm")
 def upgrade_duplicity():
-    """If charm is refreshed it will install the azure package."""
+    """If charm is refreshed it will install the packages which includes azure."""
     install_duplicity()
 
 
