@@ -41,14 +41,35 @@ helper = DuplicityHelper()
 config = hookenv.config()
 
 
+class PipPackageInstallError(RuntimeError):
+    """Error during package installation with pip."""
+
+    pass
+
+
 def install_in_system_python(package_to_install):
     """Install dependency in system python.
 
     The charm use subprocess to call duplicity,
     which is installed by apt.
     So the azure-storage-blob has to be installed n system level python
+    See https://duplicity.nongnu.org/vers7/duplicity.1.html#sect10
+    There is no maintained package in apt repositories,
+    so we have to install it with pip.
     """
-    subprocess.run(["sudo", "pip", "install", package_to_install])
+    command = ["sudo", "pip", "install", package_to_install]
+    output = subprocess.run(
+        ["sudo", "pip", "install", package_to_install],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if output.returncode != 0:
+        raise PipPackageInstallError(
+            "Failed to install a package using '{}' resulting '{}'".format(
+                " ".join(command),
+                output.stderr.decode(),
+            )
+        )
 
 
 @when_not("duplicity.installed")

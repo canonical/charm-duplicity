@@ -1,5 +1,6 @@
 """Unit tests for reactive hooks."""
 
+from unittest import TestCase
 from unittest.mock import ANY, MagicMock, call, mock_open, patch
 
 from croniter import CroniterBadCronError, CroniterBadDateError, CroniterNotAlphaError
@@ -11,19 +12,57 @@ with patch("lib_duplicity.DuplicityHelper") as helper_mock:
         import duplicity
 
 
-@patch("duplicity.hookenv")
-@patch("duplicity.fetch")
-@patch("duplicity.set_flag")
-def test_install_duplicity(mock_set_flag, mock_fetch, mock_hookenv):
-    """Verify install hook."""
-    hookenv_calls = [call("maintenance", "Installing duplicity"), call("active", "")]
-    fetch_calls = [
-        call(x) for x in ["duplicity", "python-paramiko", "python-boto", "lftp"]
-    ]
-    duplicity.install_duplicity()
-    mock_hookenv.status_set.assert_has_calls(hookenv_calls)
-    mock_fetch.apt_install.assert_has_calls(fetch_calls)
-    mock_set_flag.assert_called_with("duplicity.installed")
+class TestInstallDuplicity(TestCase):
+    """Verify charm installation."""
+
+    @patch("duplicity.hookenv")
+    @patch("duplicity.fetch")
+    @patch("duplicity.set_flag")
+    def test_install_duplicity(self, mock_set_flag, mock_fetch, mock_hookenv):
+        """Verify install hook."""
+        hookenv_calls = [
+            call("maintenance", "Installing duplicity"),
+            call("active", ""),
+        ]
+        fetch_calls = [
+            call(x) for x in ["duplicity", "python-paramiko", "python-boto", "lftp"]
+        ]
+        duplicity.install_duplicity()
+        mock_hookenv.status_set.assert_has_calls(hookenv_calls)
+        mock_fetch.apt_install.assert_has_calls(fetch_calls)
+        mock_set_flag.assert_called_with("duplicity.installed")
+
+    @patch("subprocess.run")
+    def test_install_duplicity_raises_when_pip_fails(self, mock_subprocess_run):
+        """Verify that charm installation fails when pip fails."""
+        mock_subprocess_run.return_value = MagicMock(
+            returncode=1, stderr=b"failed to install package with pip"
+        )
+        with self.assertRaises(duplicity.PipPackageInstallError):
+            duplicity.install_duplicity()
+
+    @patch("duplicity.hookenv")
+    @patch("duplicity.fetch")
+    @patch("duplicity.set_flag")
+    @patch("subprocess.run")
+    def test_install_duplicity_succeeds_when_pip_suceeds(
+        self, mock_subprocess_run, mock_set_flag, mock_fetch, mock_hookenv
+    ):
+        """Verify that charm installation fails when pip fails."""
+        hookenv_calls = [
+            call("maintenance", "Installing duplicity"),
+            call("active", ""),
+        ]
+        fetch_calls = [
+            call(x) for x in ["duplicity", "python-paramiko", "python-boto", "lftp"]
+        ]
+        mock_subprocess_run.return_value = MagicMock(
+            returncode=0, stdout=b"package installed!"
+        )
+        duplicity.install_duplicity()
+        mock_hookenv.status_set.assert_has_calls(hookenv_calls)
+        mock_fetch.apt_install.assert_has_calls(fetch_calls)
+        mock_set_flag.assert_called_with("duplicity.installed")
 
 
 class TestValidateBackend:
