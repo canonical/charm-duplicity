@@ -20,6 +20,12 @@ options:
       While using azure as a backend:
       Duplicity will take care to create the container 
       when performing the backup.  Do not create it manually before.
+      If the container is already created on Azure, 
+      it will start putting data inside it without any issues. However, 
+      if you explicitly set the configuration with a container name 
+      (e.g., remote_backup_url = azure:///some-dir), it will throw an error,
+      because Duplicity appends the unit name to the container name, 
+      Therefore, avoid explicitly setting the container name in the configuration.
 
       Backends and their URL formats:
         file:      'file:///some_dir'
