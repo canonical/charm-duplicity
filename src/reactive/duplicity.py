@@ -59,7 +59,7 @@ def install_in_system_python(package_to_install):
     """
     command = ["sudo", "pip", "install", package_to_install]
     output = subprocess.run(
-        ["sudo", "pip", "install", package_to_install],
+        command,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
@@ -95,7 +95,10 @@ def install_duplicity():
 
 @hook("upgrade-charm")
 def upgrade_duplicity():
-    """If charm is refreshed it will install the packages which includes azure."""
+    """Install packages on charm upgrade.
+
+    This ensures that any new packages added in recent releases will be installed.
+    """
     install_duplicity()
 
 
