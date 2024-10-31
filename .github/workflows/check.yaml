@@ -16,28 +16,62 @@ concurrency:
 
 jobs:
   lint-unit:
-    uses: canonical/bootstack-actions/.github/workflows/lint-unit.yaml@v2
+    name: Lint checkers and Unit tests
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.8", "3.10"]
-    with:
-      python-version: ${{ matrix.python-version }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: true
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install "tox"
+    - name: Run lint checkers
       working-directory: ./src
+      run: tox -e lint
+    - name: Run unit tests
+      working-directory: ./src
+      run: tox -e unit
 
   func:
-    uses: canonical/bootstack-actions/.github/workflows/func.yaml@v2
+    name: Functional tests
+    runs-on: ubuntu-latest
     needs: lint-unit
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - juju-channel: "3.4/stable"
-            command: "TEST_JUJU3=1 make functional"  # using TEST_JUJU3 due https://github.com/openstack-charmers/zaza/commit/af7eea953dd5d74d3d074fe67b5765dca3911ca6
-    with:
-      command: ${{ matrix.command }}
-      juju-channel: ${{ matrix.juju-channel }}
-      nested-containers: false
-      provider: "lxd"
-      python-version: "3.10"
-      timeout-minutes: 120
+        juju-channel: ["3.4/stable"]
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install tox
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "tox"
+      - name: Setup Juju ${{ matrix.juju-channel }} environment
+        uses: charmed-kubernetes/actions-operator@main
+        with:
+          provider: "lxd"
+          juju-channel: ${{ matrix.juju-channel }}
+      - name: Remove tox install by actions-operator
+        run: sudo apt remove tox -y
+      - name: Show juju information
+        run: |
+          juju version
+          juju controllers | grep Version -A 1 | awk '{print $9}'
+      - name: Run tests with `make functional`
+        run: "TEST_JUJU3=1 make functional"  # using TEST_JUJU3 due https://github.com/openstack-charmers/zaza/commit/af7eea953dd5d74d3d074fe67b5765dca3911ca6
