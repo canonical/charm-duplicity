@@ -83,7 +83,7 @@ jobs:
       fail-fast: false
       matrix:
         runs-on: [[ubuntu-22.04]]
-        test-command: ['TEST_JUJU3=1 make functional']
+        test-command: ['tox -e func']
         juju-channel: ["3.4/stable"]
     steps:
 
