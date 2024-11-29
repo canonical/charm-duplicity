@@ -1,1 +1,25 @@
-src/metadata.yaml
+name: duplicity
+summary: Duplicity offers encrypted bandwidth-efficient backup
+maintainer: Ryan Farrell <Ryan.Farrell@ryancision7250>
+docs: https://discourse.charmhub.io/t/bootstack-charmers-duplicity-docs-index/11338
+description: |
+  Duplicity backs directories by producing encrypted tar-format volumes
+  and uploading them to a remote or local file server. Because duplicity
+  uses librsync, the incremental archives are space efficient and only
+  record the parts of files that have changed since the last backup.
+  Because duplicity uses GnuPG to encrypt and/or sign these archives,
+  they will be safe from spying and/or modification by the server.
+tags:
+  # Replace "misc" with one or more whitelisted tags from this list:
+  # https://jujucharms.com/docs/stable/authors-charm-metadata
+  - backup
+subordinate: true
+provides:
+  nrpe-external-master:
+    interface: nrpe-external-master
+    scope: container
+    optional: true
+requires:
+  general-info:
+    interface: juju-info
+    scope: container
