@@ -81,9 +81,7 @@ def setup_ftp():
         "echo ubuntu > /etc/vsftpd.chroot_list && "
         "systemctl restart vsftpd".format(" ".join(vsconf))
     )
-    result = zaza.model.run_on_unit(
-        backup_host_unit.name, configure_command, timeout=15
-    )
+    result = zaza.model.run_on_unit(backup_host_unit.name, configure_command, timeout=15)
     _check_run_result(result)
 
 
@@ -95,9 +93,7 @@ def _check_run_result(result, codes=None):
     if codes:
         allowed_codes.extend(codes)
     if result["Code"] not in allowed_codes:
-        logging.error(
-            "Bad result code received. Result code: {}".format(result["Code"])
-        )
+        logging.error("Bad result code received. Result code: {}".format(result["Code"]))
         logging.error("Returned: \n{}".format(result))
         raise Exception("Command returned non-zero return code.")
 

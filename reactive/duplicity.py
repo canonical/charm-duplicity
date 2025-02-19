@@ -157,9 +157,7 @@ def update_known_host_key():
     """If known_host_key is set in the config, update known_host file."""
     known_host_key = config.get("known_host_key")
     if known_host_key:
-        hookenv.status_set(
-            workload_state="maintenance", message="Updating known_host_key"
-        )
+        hookenv.status_set(workload_state="maintenance", message="Updating known_host_key")
         helper.update_known_host_file(known_host_key)
 
 
@@ -438,9 +436,7 @@ def update_private_ssh_key():
     """If configured to use private key, update it to PRIVATE_SSH_KEY_PATH."""
     private_key = config.get("private_ssh_key")
     if private_key:
-        hookenv.status_set(
-            workload_state="maintenance", message="Updating private ssh key"
-        )
+        hookenv.status_set(workload_state="maintenance", message="Updating private ssh key")
         try:
             decoded_private_key = base64.b64decode(private_key).decode("utf-8")
             ubuntu_release = host.lsb_release()["DISTRIB_CODENAME"]
@@ -451,9 +447,7 @@ def update_private_ssh_key():
             # So OpenSSH format keys need to be converted to PEM format.
             if ubuntu_release in {"bionic", "focal"}:
                 if helper.check_key_rsa_openssh(decoded_private_key):
-                    hookenv.log(
-                        "Detected an RSA private key encoded in OpenSSH format."
-                    )
+                    hookenv.log("Detected an RSA private key encoded in OpenSSH format.")
                     decoded_private_key = helper.convert_key_to_pem(decoded_private_key)
                     hookenv.log("Private key has been converted to PEM format.")
         except (UnicodeDecodeError, binascii.Error) as e:

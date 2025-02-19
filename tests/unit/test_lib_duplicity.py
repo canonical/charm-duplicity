@@ -387,9 +387,7 @@ class TestDuplicityHelper:
     ):
         """Verify check of rsa openssh key."""
         if private_key == "rsa_key":
-            mock_load_key.return_value = generate_private_key(
-                public_exponent=65537, key_size=4096
-            )
+            mock_load_key.return_value = generate_private_key(public_exponent=65537, key_size=4096)
         elif private_key == "pem_key":
             mock_load_key.side_effect = ValueError
         else:

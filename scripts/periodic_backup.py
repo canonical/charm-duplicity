@@ -8,13 +8,13 @@ import sys
 
 sys.path.append("lib")
 
-from charmhelpers.core import hookenv
+from charmhelpers.core import hookenv  # noqa: E402
 
-from charms.reactive import clear_flag
+from charms.reactive import clear_flag  # noqa: E402
 
-from lib import lib_duplicity
+from lib import lib_duplicity  # noqa: E402
 
-from pidfile import PidFile
+from pidfile import PidFile  # noqa: E402
 
 
 pidfile = "/var/run/periodic_backup.pid"
@@ -33,16 +33,12 @@ def main():
         hookenv.log("Performing backup.")
         output = lib_duplicity.DuplicityHelper().do_backup()
         hookenv.log(
-            "Periodic backup complete with following output:\n{}".format(
-                output.decode("utf-8")
-            )
+            "Periodic backup complete with following output:\n{}".format(output.decode("utf-8"))
         )
     except subprocess.CalledProcessError as e:
         err_msg = (
             'Periodic backup failed. Command "{}" failed with return code "{}" '
-            "and error output:\n{}".format(
-                e.cmd, e.returncode, e.output.decode("utf-8")
-            )
+            "and error output:\n{}".format(e.cmd, e.returncode, e.output.decode("utf-8"))
         )
 
         hookenv.log(err_msg, level=hookenv.ERROR)

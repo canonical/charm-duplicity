@@ -108,8 +108,7 @@ class DuplicityBackupCronTest(BaseDuplicityTest):
                 )
             except concurrent.futures._base.TimeoutError:
                 self.fail(
-                    "Cron file /etc/cron.d/period_backup exists with "
-                    "option <{}>".format(option)
+                    "Cron file /etc/cron.d/period_backup exists with " "option <{}>".format(option)
                 )
 
 
@@ -225,9 +224,7 @@ class DuplicityEncryptionValidationTest(BaseDuplicityTest):
             "gpg_public_key": "",
             "disable_encryption": "False",
         }
-        zaza.model.set_application_config(
-            self.application_name, new_config, self.model_name
-        )
+        zaza.model.set_application_config(self.application_name, new_config, self.model_name)
         try:
             duplicity_workload_checker = utils.get_workload_application_status_checker(
                 self.application_name, "blocked"
@@ -261,9 +258,7 @@ class DuplicityEncryptionValidationTest(BaseDuplicityTest):
                 "Failed to enter blocked state with encryption enables and "
                 "no passphrase or key."
             )
-        zaza.model.set_application_config(
-            self.application_name, {"gpg_public_key": "S0M3k3Y"}
-        )
+        zaza.model.set_application_config(self.application_name, {"gpg_public_key": "S0M3k3Y"})
         try:
             zaza.model.block_until_all_units_idle()
         except concurrent.futures._base.TimeoutError:

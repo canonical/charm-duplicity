@@ -8,11 +8,11 @@ from subprocess import CalledProcessError
 
 sys.path.append("lib")
 
-from charmhelpers.core import hookenv
+from charmhelpers.core import hookenv  # noqa: E402
 
-from charms.reactive import clear_flag
+from charms.reactive import clear_flag  # noqa: E402
 
-from lib_duplicity import DuplicityHelper
+from lib_duplicity import DuplicityHelper  # noqa: E402
 
 
 helper = DuplicityHelper()
@@ -67,19 +67,14 @@ def main(args):
     try:
         action(args)
     except CalledProcessError as e:
-        err_msg = (
-            'Command "{}" failed with return code "{}" '
-            "and error output:{}{}".format(
-                e.cmd, e.returncode, os.linesep, e.output.decode("utf-8")
-            )
+        err_msg = 'Command "{}" failed with return code "{}" ' "and error output:{}{}".format(
+            e.cmd, e.returncode, os.linesep, e.output.decode("utf-8")
         )
         hookenv.log(err_msg, level=hookenv.ERROR)
         hookenv.action_fail(err_msg)
     except Exception as e:
         hookenv.log(
-            "{} action failed: {}{}{}".format(
-                action_name, e, os.linesep, traceback.print_exc()
-            ),
+            "{} action failed: {}{}{}".format(action_name, e, os.linesep, traceback.print_exc()),
             level=hookenv.ERROR,
         )
         hookenv.action_fail(str(e))
