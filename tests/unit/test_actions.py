@@ -114,9 +114,7 @@ class TestActions:
     @patch("actions.do_backup")
     @patch("actions.clear_flag")
     @patch("actions.os.remove")
-    def test_action_run_undefined_action(
-        self, mock_remove, mock_clear_flag, mock_do_backup
-    ):
+    def test_action_run_undefined_action(self, mock_remove, mock_clear_flag, mock_do_backup):
         """Verify invalid action."""
         action_args = ["actions/bad_action"]
         actions.ACTIONS["do-backup"] = mock_do_backup
@@ -132,8 +130,7 @@ class TestActions:
                 CalledProcessError(
                     returncode=2, output="my-error-output".encode("utf-8"), cmd="cmd"
                 ),
-                'Command "cmd" failed with return code "2" and error output:\n'
-                "my-error-output",
+                'Command "cmd" failed with return code "2" and error output:\n' "my-error-output",
             ),
             (Exception("generic exception"), "generic exception"),
         ],
@@ -175,7 +172,7 @@ class TestDoBackupAction:
         expected_dict_input = dict(output=result.decode("utf-8"))
         actions.do_backup()
         mock_helper.do_backup.assert_called_once()
-        mock_hookenv.action_set.called_with(expected_dict_input)
+        mock_hookenv.action_set.assert_called_with(expected_dict_input)
 
 
 class TestListCurrentFilesAction:
@@ -190,7 +187,7 @@ class TestListCurrentFilesAction:
         expected_dict_input = dict(output=result.decode("utf-8"))
         actions.list_current_files()
         mock_helper.list_current_files.assert_called_once()
-        mock_hookenv.action_set.called_with(expected_dict_input)
+        mock_hookenv.action_set.assert_called_with(expected_dict_input)
 
 
 class TestRemoveOlderThanAction:
@@ -205,7 +202,7 @@ class TestRemoveOlderThanAction:
         expected_dict_input = dict(output=result.decode("utf-8"))
         actions.remove_older_than()
         mock_helper.remove_older_than.assert_called_once()
-        mock_hookenv.action_set.called_with(expected_dict_input)
+        mock_hookenv.action_set.assert_called_with(expected_dict_input)
 
 
 class TestRemoveAllButNFullAction:
@@ -220,7 +217,7 @@ class TestRemoveAllButNFullAction:
         expected_dict_input = dict(output=result.decode("utf-8"))
         actions.remove_all_but_n_full()
         mock_helper.remove_all_but_n_full.assert_called_once()
-        mock_hookenv.action_set.called_with(expected_dict_input)
+        mock_hookenv.action_set.assert_called_with(expected_dict_input)
 
 
 class TestRemoveAllIncOfButNFullAction:
@@ -235,4 +232,4 @@ class TestRemoveAllIncOfButNFullAction:
         expected_dict_input = dict(output=result.decode("utf-8"))
         actions.remove_all_inc_of_but_n_full()
         mock_helper.remove_all_inc_of_but_n_full.assert_called_once()
-        mock_hookenv.action_set.called_with(expected_dict_input)
+        mock_hookenv.action_set.assert_called_with(expected_dict_input)

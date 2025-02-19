@@ -17,9 +17,7 @@ def get_workload_application_status_checker(application_name, target_status):
 
     async def checker():
         units = await zaza.model.async_get_units(application_name)
-        unit_statuses_blocked = [
-            unit.workload_status == target_status for unit in units
-        ]
+        unit_statuses_blocked = [unit.workload_status == target_status for unit in units]
         return all(unit_statuses_blocked)
 
     return checker
@@ -33,9 +31,7 @@ def config_restore(*applications):
 
         @wraps(f)
         def wrapped_f(*args):
-            original_configs = [
-                AppConfigPair(app, get_app_config(app)) for app in applications
-            ]
+            original_configs = [AppConfigPair(app, get_app_config(app)) for app in applications]
             try:
                 f(*args)
             finally:

@@ -15,6 +15,7 @@ with patch("lib_duplicity.DuplicityHelper") as helper_mock:
 class TestInstallDuplicity(TestCase):
     """Verify charm installation."""
 
+    @patch("duplicity.install_in_system_python", MagicMock())
     @patch("duplicity.hookenv")
     @patch("duplicity.fetch")
     @patch("duplicity.set_flag")
@@ -24,9 +25,7 @@ class TestInstallDuplicity(TestCase):
             call("maintenance", "Installing duplicity"),
             call("active", ""),
         ]
-        fetch_calls = [
-            call(x) for x in ["duplicity", "python-paramiko", "python-boto", "lftp"]
-        ]
+        fetch_calls = [call(x) for x in ["duplicity", "python-paramiko", "python-boto", "lftp"]]
         duplicity.install_duplicity()
         mock_hookenv.status_set.assert_has_calls(hookenv_calls)
         mock_fetch.apt_install.assert_has_calls(fetch_calls)
@@ -53,12 +52,8 @@ class TestInstallDuplicity(TestCase):
             call("maintenance", "Installing duplicity"),
             call("active", ""),
         ]
-        fetch_calls = [
-            call(x) for x in ["duplicity", "python-paramiko", "python-boto", "lftp"]
-        ]
-        mock_subprocess_run.return_value = MagicMock(
-            returncode=0, stdout=b"package installed!"
-        )
+        fetch_calls = [call(x) for x in ["duplicity", "python-paramiko", "python-boto", "lftp"]]
+        mock_subprocess_run.return_value = MagicMock(returncode=0, stdout=b"package installed!")
         duplicity.install_duplicity()
         mock_hookenv.status_set.assert_has_calls(hookenv_calls)
         mock_fetch.apt_install.assert_has_calls(fetch_calls)
@@ -157,9 +152,7 @@ class TestValidateBackend:
     @patch("duplicity.set_flag")
     @patch("duplicity.clear_flag")
     @patch("duplicity.config")
-    def test_validate_backend_success_s3(
-        self, mock_config, mock_clear_flag, mock_set_flag
-    ):
+    def test_validate_backend_success_s3(self, mock_config, mock_clear_flag, mock_set_flag):
         """Verify valid s3 backend."""
         backend = "s3"
         mock_config.get.side_effect = [backend, "aws_id", "aws_secret"]
@@ -171,9 +164,7 @@ class TestValidateBackend:
         mock_clear_flag.assert_has_calls(calls=expected_calls)
         mock_set_flag.assert_not_called()
 
-    @pytest.mark.parametrize(
-        "key_id,secret_key", [("some_id", ""), ("", "some_key"), ("", "")]
-    )
+    @pytest.mark.parametrize("key_id,secret_key", [("some_id", ""), ("", "some_key"), ("", "")])
     @patch("duplicity.set_flag")
     @patch("duplicity.clear_flag")
     @patch("duplicity.config")
@@ -191,9 +182,7 @@ class TestValidateBackend:
     @patch("duplicity.set_flag")
     @patch("duplicity.clear_flag")
     @patch("duplicity.config")
-    def test_invalid_backend_bad_backend(
-        self, mock_config, mock_clear_flag, mock_set_flag
-    ):
+    def test_invalid_backend_bad_backend(self, mock_config, mock_clear_flag, mock_set_flag):
         """Verify invalid s3 backend."""
         backend = "bad_backend"
         mock_config.get.return_value = backend
@@ -204,9 +193,7 @@ class TestValidateBackend:
     @patch("duplicity.set_flag")
     @patch("duplicity.clear_flag")
     @patch("duplicity.config")
-    def test_validate_backend_success_azure(
-        self, mock_config, mock_clear_flag, mock_set_flag
-    ):
+    def test_validate_backend_success_azure(self, mock_config, mock_clear_flag, mock_set_flag):
         """Verify valid azure backend."""
         backend = "azure"
         mock_config.get.side_effect = [backend, "azure_conn_string"]
@@ -222,9 +209,7 @@ class TestValidateBackend:
     @patch("duplicity.set_flag")
     @patch("duplicity.clear_flag")
     @patch("duplicity.config")
-    def test_invalid_backend_azure(
-        self, mock_config, mock_clear_flag, mock_set_flag, conn_string
-    ):
+    def test_invalid_backend_azure(self, mock_config, mock_clear_flag, mock_set_flag, conn_string):
         """Verify invalid azure backend."""
         backend = "azure"
         side_effects = [backend, conn_string]
@@ -276,9 +261,7 @@ class TestValidateCronFrequency:
     ):
         """Verify valid cron frequency."""
         set_flag_arg = (
-            "duplicity.create_backup_cron"
-            if create_cron
-            else "duplicity.remove_backup_cron"
+            "duplicity.create_backup_cron" if create_cron else "duplicity.remove_backup_cron"
         )
         calls = [call(set_flag_arg)]
         mock_config.get.return_value = frequency
@@ -290,9 +273,7 @@ class TestValidateCronFrequency:
     @patch("duplicity.clear_flag")
     @patch("duplicity.set_flag")
     @patch("duplicity.config")
-    def test_valid_cron_string(
-        self, mock_config, mock_set_flag, mock_clear_flag, mock_croniter
-    ):
+    def test_valid_cron_string(self, mock_config, mock_set_flag, mock_clear_flag, mock_croniter):
         """Verify valid cron frequency."""
         valid_cron_string = "* * * * *"
         mock_config.get.return_value = valid_cron_string
@@ -400,9 +381,7 @@ class TestValidateRetention:
     @patch("duplicity.clear_flag")
     @patch("duplicity.set_flag")
     @patch("duplicity.config")
-    def test_validate_retention_policy_manual(
-        self, mock_config, mock_set_flag, mock_clear_flag
-    ):
+    def test_validate_retention_policy_manual(self, mock_config, mock_set_flag, mock_clear_flag):
         """Verify valid retention functionality against manual configuration."""
         mock_config.get.return_value = "manual"
         duplicity.validate_retention_policy()
@@ -439,9 +418,7 @@ class TestUpdateKnownHostKey:
         mock_helper.update_known_host_file.assert_not_called()
 
 
-@pytest.mark.parametrize(
-    "remote_backup_url,is_valid", [("", False), ("some.url", True)]
-)
+@pytest.mark.parametrize("remote_backup_url,is_valid", [("", False), ("some.url", True)])
 @patch("duplicity.clear_flag")
 @patch("duplicity.set_flag")
 @patch("duplicity.config")
@@ -507,8 +484,7 @@ class TestCheckStatus:
             ("duplicity.invalid_backend", 'Unrecognized backend "{}"', 1),
             (
                 "duplicity.invalid_aws_creds",
-                'S3 backups require "aws_access_key_id" '
-                'and "aws_secret_access_key" to be set',
+                'S3 backups require "aws_access_key_id" ' 'and "aws_secret_access_key" to be set',
                 2,
             ),
             (
@@ -524,8 +500,7 @@ class TestCheckStatus:
             ),
             (
                 "duplicity.invalid_rsync_key",
-                "rsync backend requires private_ssh_key. remote_password auth "
-                "not supported",
+                "rsync backend requires private_ssh_key. remote_password auth " "not supported",
                 5,
             ),
             (
@@ -614,9 +589,7 @@ def test_create_deletion_cron(mock_helper, mock_clear_flag, mock_hookenv):
 @patch("duplicity.hookenv")
 @patch("duplicity.safe_remove_backup_cron")
 @patch("duplicity.clear_flag")
-def test_remove_backup_cron(
-    mock_clear_flag, mock_safe_remove_backup_cron, mock_hookenv
-):
+def test_remove_backup_cron(mock_clear_flag, mock_safe_remove_backup_cron, mock_hookenv):
     """Verify removing cron job."""
     duplicity.remove_backup_cron()
     mock_safe_remove_backup_cron.assert_called_once()
@@ -626,9 +599,7 @@ def test_remove_backup_cron(
 @patch("duplicity.hookenv")
 @patch("duplicity.safe_remove_deletion_cron")
 @patch("duplicity.clear_flag")
-def test_remove_deletion_cron(
-    mock_clear_flag, mock_safe_remove_deletion_cron, mock_hookenv
-):
+def test_remove_deletion_cron(mock_clear_flag, mock_safe_remove_deletion_cron, mock_hookenv):
     """Verify removing cron job."""
     duplicity.remove_deletion_cron()
     mock_safe_remove_deletion_cron.assert_called_once()
@@ -687,9 +658,7 @@ class TestUpdatePrivateSshKey:
     @patch("duplicity.clear_flag")
     @patch("duplicity.os")
     @patch("duplicity.config")
-    def test_update_key_no_key(
-        self, mock_config, mock_os, mock_clear_flag, path_exists
-    ):
+    def test_update_key_no_key(self, mock_config, mock_os, mock_clear_flag, path_exists):
         """Verify updating key fails."""
         mock_config.get.return_value = ""
         mock_os.path.exists.return_value = path_exists
