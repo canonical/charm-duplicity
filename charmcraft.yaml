@@ -3,7 +3,7 @@ parts:
   charm:
     source: .
     plugin: reactive
-    build-snaps: [charm]
+    build-snaps: [charm/2.x/stable]
 platforms:
   ubuntu@20.04:amd64:
   ubuntu@22.04:amd64:
