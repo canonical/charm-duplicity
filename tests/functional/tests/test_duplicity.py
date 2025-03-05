@@ -85,7 +85,7 @@ class DuplicityBackupCronTest(BaseDuplicityTest):
             )
             _run(zaza.model.async_block_until(duplicity_workload_checker, timeout=15))
             a_unit = zaza.model.get_units(self.application_name)[0]
-            self.assertEquals(
+            self.assertEqual(
                 a_unit.workload_status_message,
                 'Invalid value "{}" for "backup_frequency"'.format(cron_string),
             )
@@ -155,7 +155,7 @@ class DuplicityDeletionCronTest(BaseDuplicityTest):
             )
             _run(zaza.model.async_block_until(duplicity_workload_checker, timeout=15))
             a_unit = zaza.model.get_units(self.application_name)[0]
-            self.assertEquals(
+            self.assertEqual(
                 a_unit.workload_status_message,
                 'Invalid value "{}" for "retention_period"'.format(rp),
             )
@@ -174,7 +174,7 @@ class DuplicityDeletionCronTest(BaseDuplicityTest):
             )
             _run(zaza.model.async_block_until(duplicity_workload_checker, timeout=15))
             a_unit = zaza.model.get_units(self.application_name)[0]
-            self.assertEquals(
+            self.assertEqual(
                 a_unit.workload_status_message,
                 'Invalid value "{}" for "deletion_frequency"'.format(cron_string),
             )
@@ -231,7 +231,7 @@ class DuplicityEncryptionValidationTest(BaseDuplicityTest):
             )
             _run(zaza.model.async_block_until(duplicity_workload_checker, timeout=15))
             a_unit = zaza.model.get_units(self.application_name)[0]
-            self.assertEquals(
+            self.assertEqual(
                 a_unit.workload_status_message,
                 "Must set either an encryption passphrase, GPG public key, "
                 "or disable encryption",
