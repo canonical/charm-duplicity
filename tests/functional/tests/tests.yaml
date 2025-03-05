@@ -16,12 +16,15 @@ configure:
   - tests.configure.add_pub_key_to_backup_host
   - tests.configure.setup_ftp
 gate_bundles:
+  - noble
   - jammy
   - focal
 dev_bundles:
+  - noble
   - jammy
   - focal
 smoke_bundles:
+  - noble
   - jammy
   - focal
 target_deploy_status:

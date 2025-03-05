@@ -616,6 +616,8 @@ class TestUpdatePrivateSshKey:
             (False, "a_pem_key", "a_decoded_key", "focal"),
             (True, "a_pem_key", "a_decoded_key", "jammy"),
             (False, "a_pem_key", "a_decoded_key", "jammy"),
+            (True, "a_pem_key", "a_decoded_key", "noble"),
+            (False, "a_pem_key", "a_decoded_key", "noble"),
         ],
     )
     @patch("os.chmod")

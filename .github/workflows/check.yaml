@@ -25,8 +25,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.8', '3.10']
-    runs-on: ubuntu-22.04
+        python-version: ['3.8', '3.10', '3.12']
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
       with:
@@ -52,8 +52,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.8', '3.10']
-    runs-on: ubuntu-22.04
+        python-version: ['3.8', '3.10', '3.12']
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
       with:
@@ -82,7 +82,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runs-on: [[ubuntu-22.04]]
+        runs-on: [[ubuntu-24.04]]
         test-command: ['tox -e func']
         juju-channel: ["3.4/stable"]
     steps:
@@ -100,14 +100,14 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.12"
 
       - name: Setup Juju environment
         uses: charmed-kubernetes/actions-operator@main
         with:
           provider: "lxd"
           juju-channel: ${{ matrix.juju-channel }}
-          charmcraft-channel: "2.x/stable"
+          charmcraft-channel: "3.x/edge"
 
         # This is used by zaza in the functional tests for non-amd64 architectures (if applicable)
       - name: Set zaza juju model constraints for architecture

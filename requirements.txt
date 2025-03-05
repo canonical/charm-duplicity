@@ -2,7 +2,3 @@
 croniter
 pidfile
 fabric
-# NOTE(rgildein): The contextvars could not be installed without this requirement to be specified.
-setuptools>=42
-# NOTE(rgildein): The typing-extensions could not be installed without this requirement to be specified.
-flit-core>=3
