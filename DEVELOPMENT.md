@@ -1,4 +1,4 @@
-# Duplicity - Contributing
+# Duplicity - Development
 
 This is a quick guide to help developers start contributing to the Duplicity charm project.
 
