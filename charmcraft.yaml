@@ -1,7 +1,7 @@
 type: charm
 parts:
   charm:
-    source: .
+    source: src
     plugin: reactive
     build-snaps: [charm/2.x/stable]
 platforms:
