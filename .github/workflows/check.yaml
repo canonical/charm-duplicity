@@ -101,7 +101,7 @@ jobs:
 
       - uses: canonical/craft-actions/charmcraft/setup@main
         with:
-          channel: "2.x/stable"
+          channel: "3.x/stable"
 
       - name: Pack the charms
         id: build
