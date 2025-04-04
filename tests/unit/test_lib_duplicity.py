@@ -2,11 +2,9 @@
 """Duplicity helper unit tests."""
 from unittest.mock import ANY, call, mock_open, patch
 
-from cryptography.hazmat.primitives.asymmetric.rsa import generate_private_key
-
 import lib_duplicity
-
 import pytest
+from cryptography.hazmat.primitives.asymmetric.rsa import generate_private_key
 
 
 class TestDuplicityHelper:

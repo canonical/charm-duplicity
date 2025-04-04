@@ -5,7 +5,6 @@ import subprocess
 
 import zaza.model
 
-
 ubuntu_user_pass = "ubuntu:sUp3r5ecr3tP45SW0rd"
 ubuntu_backup_directory_source = "/home/ubuntu/test-files"
 

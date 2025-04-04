@@ -15,10 +15,10 @@ import os
 import subprocess
 from re import fullmatch
 
+import croniter
 from charmhelpers import fetch
 from charmhelpers.contrib.charmsupport.nrpe import NRPE
 from charmhelpers.core import hookenv, host
-
 from charms.reactive import (
     clear_flag,
     hook,
@@ -28,11 +28,7 @@ from charms.reactive import (
     when_any,
     when_not,
 )
-
-import croniter
-
-from lib_duplicity import DuplicityHelper
-from lib_duplicity import safe_remove_backup_cron, safe_remove_deletion_cron
+from lib_duplicity import DuplicityHelper, safe_remove_backup_cron, safe_remove_deletion_cron
 
 PRIVATE_SSH_KEY_PATH = "/root/.ssh/duplicity_id_rsa"
 PLUGINS_DIR = "/usr/local/lib/nagios/plugins/"

@@ -2,7 +2,6 @@
 """Define fixture used in unit tests."""
 
 import mock
-
 import pytest
 
 

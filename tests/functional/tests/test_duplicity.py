@@ -5,10 +5,10 @@ import base64
 import concurrent.futures
 import unittest
 
-from tests import utils
+import zaza.model
 from tests.configure import ubuntu_backup_directory_source, ubuntu_user_pass
 
-import zaza.model
+from tests import utils
 
 
 def _run(coro):

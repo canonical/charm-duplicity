@@ -9,11 +9,8 @@ from subprocess import CalledProcessError
 sys.path.append("lib")
 
 from charmhelpers.core import hookenv  # noqa: E402
-
 from charms.reactive import clear_flag  # noqa: E402
-
 from lib_duplicity import DuplicityHelper  # noqa: E402
-
 
 helper = DuplicityHelper()
 error_file = "/var/run/periodic_backup.error"
