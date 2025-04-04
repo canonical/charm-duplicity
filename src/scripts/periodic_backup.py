@@ -9,13 +9,10 @@ import sys
 sys.path.append("lib")
 
 from charmhelpers.core import hookenv  # noqa: E402
-
 from charms.reactive import clear_flag  # noqa: E402
-
-from lib import lib_duplicity  # noqa: E402
-
 from pidfile import PidFile  # noqa: E402
 
+from lib import lib_duplicity  # noqa: E402
 
 pidfile = "/var/run/periodic_backup.pid"
 error_file = "/var/run/periodic_backup.error"

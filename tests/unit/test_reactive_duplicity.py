@@ -3,9 +3,8 @@
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, call, mock_open, patch
 
-from croniter import CroniterBadCronError, CroniterBadDateError, CroniterNotAlphaError
-
 import pytest
+from croniter import CroniterBadCronError, CroniterBadDateError, CroniterNotAlphaError
 
 with patch("lib_duplicity.DuplicityHelper") as helper_mock:
     with patch("charmhelpers.core.hookenv") as hookenv_mock:

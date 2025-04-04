@@ -5,7 +5,6 @@ import subprocess
 from urllib.parse import urlparse
 
 from charmhelpers.core import hookenv, templating
-
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.serialization import (
     Encoding,
@@ -13,8 +12,6 @@ from cryptography.hazmat.primitives.serialization import (
     PrivateFormat,
     load_ssh_private_key,
 )
-
-
 from fabric import Connection
 
 BACKUP_CRON_FILE = "/etc/cron.d/periodic_backup"
