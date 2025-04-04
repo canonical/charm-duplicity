@@ -1,9 +1,21 @@
 #!/usr/bin/python3
 """Define fixture used in unit tests."""
 
+import sys
 import mock
+from os.path import abspath, dirname, join
 
 import pytest
+
+TEST_DIR = dirname(abspath(__file__))
+PROJECT_ROOT_DIR = dirname(dirname(TEST_DIR))
+CHARM_DIR = join(PROJECT_ROOT_DIR, "src")
+LIB_DIR = join(CHARM_DIR, "lib")
+REACTIVE_DIR = join(CHARM_DIR, "reactive")
+ACTIONS_DIR = join(CHARM_DIR, "actions")
+sys.path.append(LIB_DIR)
+sys.path.append(REACTIVE_DIR)
+sys.path.append(ACTIONS_DIR)
 
 
 @pytest.fixture
@@ -37,7 +49,7 @@ def mock_hookenv_config(monkeypatch):
 
     def mock_config():
         cfg = {}
-        with open("./config.yaml") as cfg_file:
+        with open(join(CHARM_DIR, "config.yaml")) as cfg_file:
             yml = yaml.safe_load(cfg_file)
 
         # Load all defaults
@@ -78,7 +90,7 @@ def duplicity_helper(tmpdir, mock_hookenv_config, mock_charm_dir, mock_local_uni
 
     # Example config file patching
     cfg_file = tmpdir.join("example.cfg")
-    with open("./tests/unit/example.cfg", "r") as src_file:
+    with open(join(PROJECT_ROOT_DIR, "tests/unit/example.cfg"), "r") as src_file:
         cfg_file.write(src_file.read())
     helper.example_config_file = cfg_file.strpath
 
