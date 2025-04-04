@@ -2,9 +2,9 @@
 """Define fixture used in unit tests."""
 
 import sys
-import mock
 from os.path import abspath, dirname, join
 
+import mock
 import pytest
 
 TEST_DIR = dirname(abspath(__file__))

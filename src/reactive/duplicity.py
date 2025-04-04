@@ -19,15 +19,7 @@ import croniter
 from charmhelpers import fetch
 from charmhelpers.contrib.charmsupport.nrpe import NRPE
 from charmhelpers.core import hookenv, host
-from charms.reactive import (
-    clear_flag,
-    hook,
-    is_flag_set,
-    set_flag,
-    when,
-    when_any,
-    when_not,
-)
+from charms.reactive import clear_flag, hook, is_flag_set, set_flag, when, when_any, when_not
 from lib_duplicity import DuplicityHelper, safe_remove_backup_cron, safe_remove_deletion_cron
 
 PRIVATE_SSH_KEY_PATH = "/root/.ssh/duplicity_id_rsa"
