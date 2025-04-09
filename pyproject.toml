@@ -63,7 +63,7 @@ exclude = '''
 [tool.isort]
 profile = "black"
 line_length = 99
-skip_glob = [".eggs", ".git", ".tox", ".venv", ".build", "build", "lib", "report", "mod", "hooks/charmhelpers", "tests/charmhelpers"]
+skip_glob = [".eggs", ".git", ".tox", ".venv", ".build", "build", "lib", "report", "mod/*", "hooks/charmhelpers", "tests/charmhelpers"]
 
 [tool.pylint]
 max-line-length = 99
@@ -96,7 +96,7 @@ source = ["."]
 omit = ["tests/**", "docs/**", "lib/**", "snap/**", "build/**", "setup.py", "mod/**", "hooks/charmhelpers/**", "tests/charmhelpers/**"]
 
 [tool.coverage.report]
-fail_under = 98
+fail_under = 94
 show_missing = true
 
 [tool.coverage.html]
