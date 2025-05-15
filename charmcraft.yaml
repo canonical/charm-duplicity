@@ -1,7 +1,10 @@
 type: charm
 parts:
   charm:
-    source: src
+    source: .
+    source-subdir: src
+    build-environment:
+    - PIP_CONSTRAINT: $CRAFT_PART_BUILD_WORK/constraints.txt
     plugin: reactive
     build-snaps: [charm]
 platforms:
